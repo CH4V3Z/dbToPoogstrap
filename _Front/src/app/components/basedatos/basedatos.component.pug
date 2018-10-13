@@ -1,0 +1,19 @@
+.container
+    .row
+        .col-12
+            label(for='tablas') Tablas:
+            select#tablas.form-control(name='tablas', [(ngModel)]="curTable")
+                option([value]='-1', disabled) -- Seleccione --
+                option([value]='prod.table_name', *ngFor='let prod of dbapi.tablas[0]') {{ prod.table_name }}                        
+        .col-12
+            button.btn.btn-success((click)="tcampos()")
+                i.big-pencil-square-o.big-xl
+    .row
+        .col-12
+            label(for='vistas') Vistas:
+            select#vistas.form-control(name='vistas', [(ngModel)]="curView")
+                option([value]='-1', disabled) -- Seleccione --
+                option([value]='prod.table_name', *ngFor='let prod of dbapi.views[0]') {{ prod.table_name }}
+        .col-12
+            button.btn.btn-success((click)="tviews()")
+                i.big-pencil-square-o.big-xl

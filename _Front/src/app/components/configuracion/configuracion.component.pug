@@ -1,0 +1,37 @@
+.container
+    .row
+        .col-md-12
+            .form-group
+                label(for='tipodb') Tipo de base de datos:
+                select#tipodb.form-control(name='tipodb', [(ngModel)]="frmData.tipodb")
+                    option([value]='-1', disabled, selected) -- Seleccione --                    
+                    option(value='PostgreSql') PostgreSql
+                    option(value='MySql') MySql
+        .col-md-12
+            .form-group
+                label(for='db') Base de Datos:
+                input#db.form-control(type='text' , name='db', [(ngModel)]="frmData.db")
+        .col-md-12
+            .form-group
+                label(for='ip') IP:
+                input#ip.form-control(type='text' , name='ip', [(ngModel)]="frmData.ip")
+        .col-md-12
+            .form-group
+                label(for='puerto') Puerto:
+                input#puerto.form-control(type='text', name='puerto', [(ngModel)]="frmData.puerto")
+        .col-md-12
+            p CREDENCIALES
+        .col-md-12
+            .form-group
+                label(for='usr') Usuario:
+                input#usr.form-control(type='text', name='usr', [(ngModel)]="frmData.usr")
+        .col-md-12
+            .form-group
+                label(for='pwd') Contraseña:
+                input#pwd.form-control(type='password', name='pwd', [(ngModel)]="frmData.pwd")
+        .col-6                
+            button.btn.btn-success.hdd-o((click)="salvar()") Salvar
+                i.big-hdd-o
+        .col-6
+            button.btn.btn-primary.hdd-o.float-right((click)="conectar()") Conectar
+                i.big-plug.big-xl

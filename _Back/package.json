@@ -1,0 +1,20 @@
+{
+  "name": "back",
+  "version": "1.0.0",
+  "description": "API de conexión",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Henderson Franco",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.16.3",
+    "mysql": "^2.16.0",
+    "nodemon": "^1.18.4",
+    "pg": "^7.4.3",
+    "pg-format": "^1.0.4",
+    "q": "^1.5.1",
+    "ramda": "^0.25.0"
+  }
+}

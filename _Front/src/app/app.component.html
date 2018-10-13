@@ -1,0 +1,23 @@
+
+<div class="row">
+  <div class="col-md-3">
+    <div class="nav-side-menu">
+      <div class="brand">Poogstrap</div><i class="big-bars big-2x toggle-btn" data-toggle="collapse" data-target="#menu-content"></i>
+      <div class="menu-list">
+        <ul class="menu-content" id="menu-content">
+          <li data-toggle="collapse" data-target="#configsMenu"><a href="#"><i class="big-wrench big-xl"> Configuración</i></a></li>
+          <div class="collapse" id="configsMenu">
+            <app-configuracion>               </app-configuracion>
+          </div>
+          <li class="collapsed" data-toggle="collapse" data-target="#dbMenu"><a href="#"><i class="big-database-1 big-lg" *ngIf="dbapi.conectado"> Base de datos "{{ dbapi.currentDb}}"</i></a></li>
+          <ul class="collapse" id="dbMenu">
+            <app-basedatos></app-basedatos>
+          </ul>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-9">
+    <app-detalle></app-detalle>
+  </div>
+</div>

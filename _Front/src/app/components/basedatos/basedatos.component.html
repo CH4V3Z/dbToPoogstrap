@@ -1,0 +1,27 @@
+
+<div class="container">
+  <div class="row">
+    <div class="col-12">
+      <label for="tablas">Tablas:</label>
+      <select class="form-control" id="tablas" name="tablas" [(ngModel)]="curTable">
+        <option [value]="-1" disabled="disabled">-- Seleccione --</option>
+        <option [value]="prod.table_name" *ngFor="let prod of dbapi.tablas[0]">{{ prod.table_name }}                        </option>
+      </select>
+    </div>
+    <div class="col-12">
+      <button class="btn btn-success" (click)="tcampos()"><i class="big-pencil-square-o big-xl"></i></button>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-12">
+      <label for="vistas">Vistas:</label>
+      <select class="form-control" id="vistas" name="vistas" [(ngModel)]="curView">
+        <option [value]="-1" disabled="disabled">-- Seleccione --</option>
+        <option [value]="prod.table_name" *ngFor="let prod of dbapi.views[0]">{{ prod.table_name }}</option>
+      </select>
+    </div>
+    <div class="col-12">
+      <button class="btn btn-success" (click)="tviews()"><i class="big-pencil-square-o big-xl"></i></button>
+    </div>
+  </div>
+</div>

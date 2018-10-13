@@ -1,0 +1,54 @@
+
+<div class="container">
+  <div class="row">
+    <div class="col-md-12">
+      <div class="form-group">
+        <label for="tipodb">Tipo de base de datos:</label>
+        <select class="form-control" id="tipodb" name="tipodb" [(ngModel)]="frmData.tipodb">
+          <option [value]="-1" disabled="disabled" selected="selected">-- Seleccione --                    </option>
+          <option value="PostgreSql">PostgreSql</option>
+          <option value="MySql">MySql</option>
+        </select>
+      </div>
+    </div>
+    <div class="col-md-12">
+      <div class="form-group">
+        <label for="db">Base de Datos:</label>
+        <input class="form-control" id="db" type="text" name="db" [(ngModel)]="frmData.db"/>
+      </div>
+    </div>
+    <div class="col-md-12">
+      <div class="form-group">
+        <label for="ip">IP:</label>
+        <input class="form-control" id="ip" type="text" name="ip" [(ngModel)]="frmData.ip"/>
+      </div>
+    </div>
+    <div class="col-md-12">
+      <div class="form-group">
+        <label for="puerto">Puerto:</label>
+        <input class="form-control" id="puerto" type="text" name="puerto" [(ngModel)]="frmData.puerto"/>
+      </div>
+    </div>
+    <div class="col-md-12">
+      <p>CREDENCIALES</p>
+    </div>
+    <div class="col-md-12">
+      <div class="form-group">
+        <label for="usr">Usuario:</label>
+        <input class="form-control" id="usr" type="text" name="usr" [(ngModel)]="frmData.usr"/>
+      </div>
+    </div>
+    <div class="col-md-12">
+      <div class="form-group">
+        <label for="pwd">Contraseña:</label>
+        <input class="form-control" id="pwd" type="password" name="pwd" [(ngModel)]="frmData.pwd"/>
+      </div>
+    </div>
+    <div class="col-6">               
+      <button class="btn btn-success hdd-o" (click)="salvar()">Salvar<i class="big-hdd-o"></i></button>
+    </div>
+    <div class="col-6">
+      <button class="btn btn-primary hdd-o float-right" (click)="conectar()">Conectar<i class="big-plug big-xl"></i></button>
+    </div>
+  </div>
+</div>
