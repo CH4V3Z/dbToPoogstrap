@@ -1,0 +1,159 @@
+
+doctype html
+html
+	head
+		script(type='text/javascript')
+			let frmdata = {
+  "cia_nid": null,
+  "cia_vnombre": "",
+  "cia_vdirect": "",
+  "cia_vrtn": "",
+  "cia_vcontacto": "",
+  "cia_vtelefono": "",
+  "cia_vmail": "",
+  "cia_vcate": "'Normal'",
+  "cia_ncredit": 30,
+  "cia_nsts": 1,
+  "cia_vpos": "'14.597924, -87.824694'",
+  "cia_nid_fk": 1,
+  "cia_vshortname": "''"
+};
+	body
+		//- ******************************************
+		//- *********** cia_nid ************
+		//- PrimaryKey Hiden
+		input.form-control(type="hidden", readonly, [(ngModel)]= "frmdata.cia_nid", name="cia_nid")
+		//- PrimaryKey Visible
+		.form-group
+			label {{'frms.cias.cia_nid' | translate}} :
+			input.form-control(type="number", placeholder="{{'frms.cias.cia_nid_ph' | translate}}", readonly, [(ngModel)]= "frmdata.cia_nid", name="cia_nid")
+		//- ******************************************
+		
+
+
+		//- ******************************************
+		//- *********** cia_vnombre ************
+		.form-group
+			label {{'frms.cias.cia_vnombre' | translate}} :
+			input.form-control(type="text", placeholder="{{'frms.cias.cia_vnombre_ph' | translate}}", [(ngModel)]="frmdata.cia_vnombre", name="cia_vnombre", #cia_vnombre="ngModel", required, minlength="2", maxlength="255")
+		//- ******************************************
+		
+
+
+		//- ******************************************
+		//- *********** cia_vdirect ************
+		.form-group
+			label {{'frms.cias.cia_vdirect' | translate}} :
+			input.form-control(type="text", placeholder="{{'frms.cias.cia_vdirect_ph' | translate}}", [(ngModel)]="frmdata.cia_vdirect", name="cia_vdirect", #cia_vdirect="ngModel", required, minlength="2", maxlength="255")
+		//- ******************************************
+		
+
+
+		//- ******************************************
+		//- *********** cia_vrtn ************
+		.form-group
+			label {{'frms.cias.cia_vrtn' | translate}} :
+			input.form-control(type="text", placeholder="{{'frms.cias.cia_vrtn_ph' | translate}}", [(ngModel)]="frmdata.cia_vrtn", name="cia_vrtn", #cia_vrtn="ngModel", required, minlength="2", maxlength="255")
+		//- ******************************************
+		
+
+
+		//- ******************************************
+		//- *********** cia_vcontacto ************
+		.form-group
+			label {{'frms.cias.cia_vcontacto' | translate}} :
+			input.form-control(type="text", placeholder="{{'frms.cias.cia_vcontacto_ph' | translate}}", [(ngModel)]="frmdata.cia_vcontacto", name="cia_vcontacto", #cia_vcontacto="ngModel", required, minlength="2", maxlength="255")
+		//- ******************************************
+		
+
+
+		//- ******************************************
+		//- *********** cia_vtelefono ************
+		.form-group
+			label {{'frms.cias.cia_vtelefono' | translate}} :
+			input.form-control(type="text", placeholder="{{'frms.cias.cia_vtelefono_ph' | translate}}", [(ngModel)]="frmdata.cia_vtelefono", name="cia_vtelefono", #cia_vtelefono="ngModel", required, minlength="2", maxlength="255")
+		//- ******************************************
+		
+
+
+		//- ******************************************
+		//- *********** cia_vmail ************
+		.form-group
+			label {{'frms.cias.cia_vmail' | translate}} :
+			input.form-control(type="text", placeholder="{{'frms.cias.cia_vmail_ph' | translate}}", [(ngModel)]="frmdata.cia_vmail", name="cia_vmail", #cia_vmail="ngModel", required, minlength="2", maxlength="255")
+		//- ******************************************
+		
+
+
+		//- ******************************************
+		//- *********** cia_dfcrea ************
+		.form-group
+			label {{'frms.cias.cia_dfcrea' | translate}} :
+		//- ******************************************
+		
+
+
+		//- ******************************************
+		//- *********** cia_vcate ************
+		.form-group
+			label {{'frms.cias.cia_vcate' | translate}} :
+			input.form-control(type="text", placeholder="{{'frms.cias.cia_vcate_ph' | translate}}", [(ngModel)]="frmdata.cia_vcate", name="cia_vcate", #cia_vcate="ngModel", required, minlength="2", maxlength="255")
+		//- ******************************************
+		
+
+
+		//- ******************************************
+		//- *********** cia_ncredit ************
+		.form-group
+			label {{'frms.cias.cia_ncredit' | translate}} :
+			input.form-control(type="number",min="-2147483648", max="2147483647", placeholder="{{'frms.cias.cia_ncredit_ph' | translate}}", [(ngModel)]= "frmdata.cia_ncredit", name="cia_ncredit")
+		//- ******************************************
+		
+
+
+		//- ******************************************
+		//- *********** cia_nsts ************
+		.form-group
+			label {{'frms.cias.cia_nsts' | translate}} :
+			input.form-control(type="number",min="-32768", max="32767", placeholder="{{'frms.cias.cia_nsts_ph' | translate}}", [(ngModel)]= "frmdata.cia_nsts", name="cia_nsts")
+			//- CheckBoxsOptions
+			br
+			label.radio-inline.c-radio
+				input#inlineradio1(type="radio", name="cia_nsts", value="0", [(ngModel)]="frmdata.cia_nsts", checked="checked")
+				span.fa.fa-circle
+				| {{'frms.cias.cia_nsts0' | translate}}
+			label.radio-inline.c-radio
+				input#inlineradio1(type="radio", name="cia_nsts", value="1", [(ngModel)]="frmdata.cia_nsts" )
+				span.fa.fa-circle
+				| {{'frms.cias.cia_nsts1' | translate}}
+		//- ******************************************
+		
+
+
+		//- ******************************************
+		//- *********** cia_vpos ************
+		.form-group
+			label {{'frms.cias.cia_vpos' | translate}} :
+			input.form-control(type="text", placeholder="{{'frms.cias.cia_vpos_ph' | translate}}", [(ngModel)]="frmdata.cia_vpos", name="cia_vpos", #cia_vpos="ngModel", required, minlength="2", maxlength="100")
+		//- ******************************************
+		
+
+
+		//- ******************************************
+		//- *********** cia_nid_fk ************
+		.form-group
+			label {{'frms.cias.cia_nid_fk' | translate}} :
+			input.form-control(type="number",min="-9223372036854775808", max="9223372036854775807", placeholder="{{'frms.cias.cia_nid_fk_ph' | translate}}", [(ngModel)]= "frmdata.cia_nid_fk", name="cia_nid_fk")
+		//- ******************************************
+		
+
+
+		//- ******************************************
+		//- *********** cia_vshortname ************
+		.form-group
+			label {{'frms.cias.cia_vshortname' | translate}} :
+			input.form-control(type="text", placeholder="{{'frms.cias.cia_vshortname_ph' | translate}}", [(ngModel)]="frmdata.cia_vshortname", name="cia_vshortname", #cia_vshortname="ngModel", required, minlength="2", maxlength="30")
+		//- ******************************************
+		
+
+

@@ -1,0 +1,16 @@
+{
+  "name": "poogstrap",
+  "version": "1.0.0",
+  "description": "prepara el contenido de una base de datis en unouts de bootstrap",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Luis Alfredo Chavez",
+  "license": "ISC",
+  "dependencies": {
+    "pg": "^7.5.0",
+    "pg-format": "^1.0.4",
+    "q": "^1.5.1"
+  }
+}
