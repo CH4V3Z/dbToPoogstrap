@@ -1,0 +1,371 @@
+
+	doctype html
+	html
+	head
+		script(type='text/javascript')
+
+
+			// *********************************************************************
+			// ###### AGREGAR AL CRUD SERVICE  ######
+			// *********************************************************************
+
+			// TODOS LOS EVENTOS HTTP PARA *** _TDEVICES ***
+			// _________________________________________________________________________
+				setDevices(body: Object) {
+					body = body || {};
+					return this.http.post('/pmain/sdevices', body).map(this.setterFnOk);
+				};
+				getDevices(body: any) {
+					body = body || Object.assign(body, {
+						scope: "CIA"
+					});
+					return this.http.post('/pmain/gdevices', body).map(this.setterFnOk);
+				}
+				delDevices(body: Object) {
+					body = body || {};
+					return this.http.post('/pmain/ddevices', body).map(this.setterFnOk);
+				};
+			// |\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/
+
+
+
+			// *********************************************************************
+			// ###### AGREGAR AL ROUTER DE Express  ######
+			// *********************************************************************
+			// TODAS LAS RUTAS PARA *** _TDEVICES ***
+			// _________________________________________________________________________
+				r.post('/ddevices', candado, (req, res, next) => {
+					processDevices("dDevices",req, res)
+				});
+				r.post('/sdevices', candado, (req, res, next) => {
+					processDevices("sDevices",req, res)
+				});
+				let processDevices = (keysql,req, res) => {
+					if	(_SQL.hasOwnProperty(keysql)){
+						_SQL[keysql](req.body, req.session)
+						.then((datos) => {
+							try {
+								RAM.devices({ match: req.session }, 1).then((res) => {
+									req.app.io.in('cia_' + req.session.cia_nid).emit('dbquery', Object.assign({ origen: 'devices' }, res));
+								});
+							} catch (ex) {
+								console.log(ex);
+								req.app.io.in('session_' + req.session.id).emit('backendError',{msg:"backend.EX001", err: ex});
+							}
+							res.send(datos);
+						}, (datos) => { run.fail(datos, res, req) })
+					}else{
+						res.send({type: 'paramsError', msg: "backend.EX002", error: {key: keysql } });
+					}
+				};
+				r.post('/gdevices', candado, (req, res, next) => {
+					_SQL.gDevices(req.body)
+					.then((data) => {
+						run.resolvestd(data, res, req)
+					})
+					.fail((data) => {
+						run.fail(data,res,req);
+					})
+				});
+			// |\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/
+
+
+			// *********************************************************************
+			// ###### AGREGAR A LA LIBRERIA SQL  ######
+			// *********************************************************************
+			// Metodos SQL PARA *** _TDEVICES ***
+			// _________________________________________________________________________
+				sql.sDevices = (body, session) => {
+					body = body || {};
+					let deferred = q.defer();
+
+					//⬇⬇⬇⬇⬇⬇⬇Si la Tabla requiere cia_nid la siguiente linea comprueba su existencia ⬇⬇⬇⬇⬇⬇
+					if (session.user.usr_nsuper *1  == 1) {
+						if (!body.hasOwnProperty('cia_nid') || isNaN(body['cia_nid']) || body['cia_nid'] * 1 <= 0) body['cia_nid'] = session.cia_nid;
+					}else{
+						body['cia_nid'] = session.cia_nid
+					}
+					//⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆
+					let params = {
+						data:body,
+						table:'_tdevices',
+						key:'dv_nid',
+						where: null,
+						return: '*' //<-usar * para devolcer todo el row afectado o insertado
+					};
+					run.upsert(params, 'sDevices')
+					.then(x => {
+						deferred.resolve(x)
+					}).fail((res) => {
+						deferred.reject(res);
+					});
+					return deferred.promise;
+				};
+				sql.gDevices=(options)=>{
+					let deferred = q.defer();
+					try{
+						if (!(options && options.scope)){
+							deferred.reject({type: 'dataError', msg: "backend.EX004", error : options });
+						}
+						let strsql = "";
+						switch(options.scope){
+							case 'CIA':
+								strsql = format('SELECT dv_nid, dv_vimei, dv_vpass, mdl_nid, cia_nid, dv_nsts FROM _tdevices  WHERE cia_nid = %s ORDER BY dv_nid  DESC', options.match);
+								break;
+							case 'ALL':
+								strsql = 'SELECT dv_nid, dv_vimei, dv_vpass, mdl_nid, cia_nid, dv_nsts FROM _tdevices  ORDER BY dv_nid DESC';
+								break;
+							default:
+								process.nextTick(()=>{
+									deferred.reject({type: 'dataError', msg: "backend.EX005", error : options });
+								});
+								return deferred.promise;
+						};
+						run.stdqry(strsql, 'gDevices').then(data=>{
+							try{
+								deferred.resolve(data);
+							}catch(ex){
+								console.log(ex);
+							}
+						}).fail(err => {
+							deferred.reject(err)
+						});
+					}catch(ex){
+						console.log(ex)
+					}
+					return deferred.promise;
+
+				};
+				sql.dDevices = (body, session) => {
+					body = body || {};
+
+					let cia_nid = session.cia_nid;
+					if (session.user && session.user.usr_nsuper*1 == 1) {
+						if (body.cia_nid) {
+							cia_nid = body.cia_nid
+						}
+					}
+
+					let deferred = q.defer();
+					let params = {
+						table: '_tdevices',
+						key: 'dv_nid',
+						value: body.dv_nid,
+						reqCia: true,
+						cia: cia_nid
+					};
+					run.delete(params, 'dDevices')
+						.then(
+						x => {
+							deferred.resolve(x)
+						}
+						)
+						.fail(
+						(res) => {
+							deferred.reject(res);
+						}
+						);
+					return deferred.promise;
+				};
+			// |\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/
+
+			// Metodos RAM_DB *** _TDEVICES ***
+			// _________________________________________________________________________
+				ramdata.devices = (qryp, strict) => {
+					let deferred = q.defer();
+					!repo.hasOwnProperty('devices') && (repo['devices'] = {});
+					let cia_nid = qryp.match.cia_nid;
+					if (qryp.match.usr_nsuper*1 == 1) {
+						if (qryp.hasOwnProperty('params') && qryp.params.hasOwnProperty('cia_nid')) {
+							cia_nid = qryp.params.cia_nid;
+						}
+					}
+					!repo.devices.hasOwnProperty(cia_nid) && (repo.devices[cia_nid] = [] );
+					if ((repo.devices[cia_nid].length == 0) || (strict && strict == 1)) {
+						try {
+							_SQL.gDevices({
+								scope: 'CIA',
+								match: cia_nid
+							})
+								.then((res) => {
+									resolvestd(res, qryp, "devices", deferred)
+								})
+								.fail((res) => {
+									console.log("No hay respuesta");
+									deferred.reject(res);
+								})
+						} catch (ex) {
+							console.log(ex);
+						}
+					} else {
+						process.nextTick(() => {
+							deferred.resolve({ type: "ok", datos: repo.devices[cia_nid], qrtype: 'RAM' });
+						});
+					}
+					return deferred.promise;
+				};
+			// |\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/
+
+
+			// Para el Component de busqueda Usar comando
+			// ng g c shared/components/devicestext
+
+			devicesChange(e){
+				if (e) {
+					this.frmdata.dv_nid = e.dv_nid;
+				}else{
+					this.frmdata.dv_nid = null;
+				}
+			}
+			//Esto va en la funcion Edit ⬇⬇⬇
+			this.setters.dv_nid = { dv_nid: rw["dv_nid"]};
+			// Setter dede incluir
+			//public setters={ dv_nid : null, }
+			//
+
+
+			import { Component, EventEmitter, Input, Output, OnInit, OnDestroy } from '@angular/core';
+			import { RammemoryService } from '@shared/services/rammemory.service';
+			import { Subject } from 'rxjs/Subject';
+			import { SettingsService } from '@shared/services/settings.service';
+			import { FrameworkService } from '@shared/services/framework.service';
+
+			@Component({
+				selector: 'app-devicestext',
+				template: `
+					<ng-select
+					[items]="items"
+				placeholder = "{{placeholder}}"
+				[searchable] = "isSearchable"
+				[searchFn] = "_buscar"
+					(clear) = "_clear()"
+						(change) = "_onChange($event)"
+				loadingText = "Bigtrack ... "
+				[(ngModel)] = "_value"
+					>
+					<ng-template ng-option-tmp let-item="item">
+						{{ item.label }}:{{ item.id }}<br />
+						<small>{{ item.text }}</small>
+					</ng-template>
+					</ng-select >
+				`
+			})
+			export class DevicestextComponent implements OnInit {
+				private destroy$: Subject<boolean> = new Subject<boolean>();
+				public items: Array<Object> = [];
+				public _filtro: Object = null;
+				public _value: Object = {};
+				public rawData = [];
+
+				@Input() placeholder: String = "Seleccione &&&&&";
+				@Input() isSearchable:boolean = true;
+
+				public lastValue:object = null
+				@Input("value")
+				set value(e: Object) {
+					this.applyFilter(e);
+					this.lastValue = e;
+				};
+				applyFilter(e){
+					if (e && e["dv_nid"]) {
+						let rw: any = this.rawData.find( (el:any) => el.hasOwnProperty('dv_nid') && el['dv_nid'] == e['dv_nid'] );
+						if (rw !== undefined) {
+							this._value = {
+								id: rw.dv_nid,
+								label: rw.labelField&&&,
+								text: rw.textField&&&&,
+							};
+							return;
+						}
+					}
+					this._value = {};
+				}
+
+				@Input("filtro")
+				set filtro(e: Object) {
+					let ittm = this.items;
+					if (!!e) {
+						this._filtro = e;
+						ittm = this.dataTransform(this.rawData);
+					}else{
+						!!this._filtro && (this._filtro = null) || (ittm  = this.dataTransform(this.rawData))
+						this._filtro = null;
+					}
+					this.items = [...ittm];
+				}
+				@Output()
+				onChange = new EventEmitter();
+				constructor(public fws: FrameworkService, public ram: RammemoryService, private setting :SettingsService) {}
+				_onChange(e){
+					try {
+						if (!e) { this.onChange.emit(null); return; }
+						let rw: any = this.rawData.find((el: any) => el.hasOwnProperty('dv_nid') && el['dv_nid'] == e['id']);
+						this.onChange.emit(rw);
+					} catch (error) {
+						console.error(error);
+					}
+				}
+				_clear(){
+					this.onChange.emit(null);
+				}
+				_buscar(term: string, item: any) {
+					try{
+						!!term && (term = term.toLocaleLowerCase());
+						return item.label.toLocaleLowerCase().indexOf(term) > -1 || item.text.toLocaleLowerCase().indexOf(term) >-1 || item.id.toString() == term;
+					}catch(ex){
+						return false;
+					}
+				}
+				dataTransform(data:Array<{}>):Array<{}>{
+					try {
+						let filtered = data;
+						if (this._filtro) {
+							filtered = data.filter(el=>{
+								for (const key in this._filtro) {
+									if(el.hasOwnProperty(key)){
+										if (el[key] !== this._filtro[key]) return false;
+									}else{
+										return false;
+									}
+								}
+								return true;
+							});
+						}
+						return filtered.map(el=> {
+							return {
+								id: el['dv_nid'],
+								label: el['labelField&&&'],
+								text: el["textField&&&&"]}
+						});
+					} catch (error) {
+						console.error(error);
+						return [];
+					}
+				}
+				ngOnInit() {
+
+					this.ram.getDatos("devices").takeUntil(this.destroy$).subscribe(data => {
+						this.rawData = data;
+						this.items = [...this.dataTransform(data)];
+						this.applyFilter(this.lastValue);
+					});
+				}
+				ngOnDestroy() {
+					this.destroy$.next(true);
+					this.destroy$.unsubscribe();
+				};
+			}
+
+
+	body
+
+
+
+			.form-group
+				label {{'frm.devices.devicestxtlabel' | translate}} :
+				app-devicestext(
+					placeholder = "{{'frm.devices.devicestxtph' | translate}}",
+					[isSearchable] = "true",
+					[value] = "setters.dv_nid",
+					[filtro] ='null',
+					(onChange) = "devicesChange($event)" )

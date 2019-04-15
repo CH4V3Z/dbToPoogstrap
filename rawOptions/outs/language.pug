@@ -1,0 +1,636 @@
+
+	doctype html
+	html
+	head
+		script(type='text/javascript')
+			import { Component, OnInit, ViewEncapsulation, ViewChild, OnDestroy, NgZone } from '@angular/core';
+			import { TranslateService } from '@ngx-translate/core';
+
+			import { FrmworkService } from "@shared/services/frmwork.service";
+			import { CommunicatorService } from "@shared/services/communicator.service";
+			import { RamdataService } from "@shared/services/ramdata.service";
+			import { SettingsService } from "@core/settings/settings.service";
+			import { DatatableComponent } from "@swimlane/ngx-datatable"
+
+			import { Subject } from 'rxjs/Subject';
+			import { BehaviorSubject } from 'rxjs/BehaviorSubject';
+			const swal = require('sweetalert');
+			declare let jQuery: any;
+			@Component({
+				selector: 'app-language',
+				templateUrl: './language.component.html',
+				styleUrls: ['./language.component.scss']
+			})
+			export class LanguageComponent implements OnInit, OnDestroy {
+				private destroy$: Subject<boolean> = new Subject<boolean>();
+				public rows = [];
+				public filterRslt = [];
+				public filterstr = "";
+				public filterTimer = null;
+				loadingIndicator: boolean = true;
+
+							public frmdata = {
+				lng_nid : 0 ,
+				lng_vcod :  ''  ,
+				lng_vname :  ''
+			};
+			public setters = {
+
+			};
+
+				// public isSuper = false; // =>> Si la tabla requiere identificacion por Compañias
+
+				@ViewChild("table") table : DatatableComponent;
+				constructor(
+					public fwk: FrmworkService, private translate: TranslateService,
+					public ram: RamdataService, public communicator: CommunicatorService,
+					public settings: SettingsService,
+					public zn: NgZone){
+
+					// Si la tabla requiere identificacion por Compañias
+
+
+					this.ram.getDatos("language").takeUntil(this.destroy$).subscribe(data => {
+						zn.run(()=>{
+							this.rows = data;
+							this.updateFilter(null);
+						});
+					});
+					this.resetForm(null);
+				}
+
+				editBtn(e,rw){
+					e && e.preventDefault();
+
+					this.resetForm(null);
+					for (let key in rw) {
+						if (this.frmdata.hasOwnProperty(key)) {
+							this.frmdata[key] = rw[key];
+						}
+					};
+					this.frmdata.**_bsts == rw.**_bsts ? '1' : '0';
+					// Sugerencia de edicion pata los tags
+
+				};
+				viewBtn(e, rw) {
+					e && e.preventDefault();
+				};
+				delBtn(e, rw) {
+					e && e.preventDefault();
+					// if (rw.ESTADO  !=  0) {
+					// 	swal(
+					// 		'Ops',
+					// 		this.translate.instant('ALGUN ERROR POR RESTRICCION DE BORRADO'),
+					// 		'warning'
+					// 	)
+					// 	return;
+					// }
+					swal({
+						title: this.translate.instant('rotulos.swal.deltit'),
+						text: this.translate.instant('rotulos.swal.delquest'),
+						type: 'warning',
+						showCancelButton: true,
+						confirmButtonText: this.translate.instant('rotulos.swal.yesdel'),
+						cancelButtonText: 'No.'
+					}).then((result) => {
+						if (result.value) {
+							this.communicator.delLanguage(rw).subscribe(x => {
+								// console.log(x);
+								if (x.hasOwnProperty('type') && x['type'] == 'ok') {
+									swal(
+										'Deleted',
+										'Ok!',
+										'success'
+									)
+								}else{
+									swal(
+										'Ops',
+										this.translate.instant(x['msg']) || "Somthing wrong...",
+										'warning'
+									)
+								}
+							});
+						}
+					});
+				};
+				saveBtn(e) {
+					e && e.preventDefault();
+					// ***** los tags a String en caso que existan
+
+					// *******************************************************
+					// VALIDAR LA INFORMACION ANTES DE HACER EL POST
+					// *******************************************************
+					let paso = true;
+					!this.fwk.validInt(this.frmdata.lng_nid, 0, null) && ( (paso = false) || this.fwk.toast('warning', 'BigTrack', this.translate.instant('frm.language.lng_nid_rq')) )
+				!this.fwk.validString(this.frmdata.lng_vcod, 2, 3) && ( (paso = false) || this.fwk.toast('warning', 'BigTrack', this.translate.instant('frm.language.lng_vcod_rq')) )
+				!this.fwk.validString(this.frmdata.lng_vname, 2, 15) && ( (paso = false) || this.fwk.toast('warning', 'BigTrack', this.translate.instant('frm.language.lng_vname_rq')) )
+
+					if	(paso){
+						this.communicator.setLanguage(this.frmdata).subscribe(x => {
+							x.datos.recordset && x.datos.recordset[0] && x.datos.recordset[0].lastid && (this.frmdata.lng_nid = x.datos.recordset[0].lastid);
+						});
+					}
+				};
+				resetForm(e) {
+					e && e.preventDefault();
+					// resetear con la formdata
+				};
+				updateFilter(e) {
+					this.loadingIndicator = true;
+					e && e.hasOwnProperty('preventDefault') && e.preventDefault();
+					this.filterTimer && clearTimeout(this.filterTimer)
+					this.filterTimer = setTimeout(() => {
+						if (this.filterstr.trim().length>0)
+							this.filterRslt = this.rows.filter((val, idx, arr)=>{
+								return Object.keys(val).reduce((acum,current,idx)=>{
+									val[current] && (acum = acum + '_' + val[current].toString());
+									return acum;
+								}, "").toUpperCase().indexOf(this.filterstr.toUpperCase()) > -1
+							})
+						else {this.filterRslt = this.rows}
+						setTimeout(() => {
+							this.loadingIndicator = false;
+						}, 200);
+					}, 700);
+				}
+
+				reload(e){
+					e && e.preventDefault();
+					this.loadingIndicator = true;
+					if (e  && e.altKey) {
+						this.communicator.getLanguage(null).subscribe(x => {
+							x && x.hasOwnProperty('type') && x.type == 'ok' &&  (this.rows = x.datos);
+							this.updateFilter(null);
+						});
+					}else
+						this.ram.getDatos("language",1,1);
+				}
+				ngOnInit() {
+				};
+				ngOnDestroy() {
+					this.destroy$.next(true);
+					this.destroy$.unsubscribe();
+				};
+			language : {
+				lng_nid : "lng_nid",
+				lng_vcod : "lng_vcod",
+				lng_vname : "lng_vname",
+				lng_nid_ph : "lng_nid_txt" ,
+				lng_vcod_ph : "lng_vcod_txt" ,
+				lng_vname_ph : "lng_vname_txt" ,
+				languagetxtlabel : "languagetxtlabel" ,
+				languagetxtph : "languagetxtph" ,
+				tit : "Titulo Language" ,
+				lng_nid_th : "lng_nid_txt" ,
+				lng_vcod_th : "lng_vcod_txt" ,
+				lng_vname_th : "lng_vname_txt" ,
+				lng_nid_rq : "lng_nid_txt es invalido" ,
+				lng_vcod_rq : "lng_vcod_txt es invalido" ,
+				lng_vname_rq : "lng_vname_txt es invalido"
+			},
+
+				body
+				div(class="content-heading") {{'frm.language.tit' | translate}}
+				.row
+					.col-sm-5
+						.card.card-default
+							.card-header
+								span {{"frm.language.frmtit" | translate}}
+								a.text-muted.float-right(tooltip="{{'rot.reload' | translate}}",  (click)= "reload($event)")
+									em.icon-reload
+								.text-muted.float-right
+									| &nbsp; &nbsp;
+								a.text-muted.float-right(tooltip="{{'rot.new' | translate}}", (click)= "resetForm($event)")
+									em.icon-doc
+							.card-body
+								form.form-validate.mb-3(role="form")
+									//- ****************************************** -//
+								//- *********** lng_nid ************ -//
+								//- PrimaryKey Hiden
+								input.form-control(type="hidden", readonly, [(ngModel)]= "frmdata.lng_nid", name="lng_nid")
+								//- PrimaryKey Visible
+								.form-group
+									label {{'frm.language.lng_nid' | translate}} :
+									input.form-control(type="number", placeholder="{{'frm.language.lng_nid_ph' | translate}}", readonly, [(ngModel)]= "frmdata.lng_nid", name="lng_nid")
+									.text-danger(*ngIf="(lng_nid.errors?.required ) && (lng_nid.dirty || lng_nid.touched)") {{'frm.language.lng_nid_rq' | translate}}
+								//- ******************************************
+
+
+
+								//- ****************************************** -//
+								//- *********** lng_vcod ************ -//
+								.form-group
+									label {{'frm.language.lng_vcod' | translate}} :
+									.input-group.with-focus
+										input.form-control(type="text", placeholder="{{'frm.language.lng_vcod_ph' | translate}}", [(ngModel)]="frmdata.lng_vcod", name="lng_vcod", #lng_vcod="ngModel", required, minlength="2", maxlength="3")
+									.text-danger(*ngIf="(lng_vcod.errors?.required || lng_vcod.errors ?.minlength) && (lng_vcod.dirty || lng_vcod.touched)") {{'frm.language.lng_vcod_rq' | translate}}
+								//- ******************************************
+
+
+
+								//- ****************************************** -//
+								//- *********** lng_vname ************ -//
+								.form-group
+									label {{'frm.language.lng_vname' | translate}} :
+									.input-group.with-focus
+										input.form-control(type="text", placeholder="{{'frm.language.lng_vname_ph' | translate}}", [(ngModel)]="frmdata.lng_vname", name="lng_vname", #lng_vname="ngModel", required, minlength="2", maxlength="15")
+									.text-danger(*ngIf="(lng_vname.errors?.required || lng_vname.errors ?.minlength) && (lng_vname.dirty || lng_vname.touched)") {{'frm.language.lng_vname_rq' | translate}}
+								//- ******************************************
+
+
+
+									button.btn.btn-success.mb-xs(role="button", (click) = "saveBtn($event)")
+										i.big-check
+										| {{'btns.safe' | translate}}
+
+					.col-md-7
+						input.form-control.form-control-rounded(type='text',
+							placeholder='{{"rot.filter" | translate}}',
+							style='padding:8px;margin:0px auto 10px auto;width:90%;',
+							(keyup)='updateFilter($event)',
+							[(ngModel)]="filterstr")
+
+						ngx-datatable.material.fullscreen(
+							#table='',
+							[rows]='filterRslt',
+							[columnMode]="'force'",
+							[headerHeight]="50",
+							[footerHeight]="50",
+							[sortType]="'multi'",
+							[rowHeight]="40",
+							[scrollbarV]="false",
+							[scrollbarH]="true",
+							[reorderable]="true",
+							[swapColumns]="false",
+							[limit]="10",
+							[loadingIndicator]="loadingIndicator")
+							ngx-datatable-column(
+								name="Edit",
+								[width]='55',
+								[sortable]="false",
+								[canAutoResize]="false",
+								[draggable]="false",
+								[resizeable]="false")
+								ng-template(let-row="row", ngx-datatable-cell-template="")
+								button.btn.btn-sm.btn-outline-info((click)="editBtn($event,row)", tooltip= "{{'btns.edit' | translate}}")
+								i.icon.fa.fa-edit
+								ngx-datatable-column(name="{{'frm.language.lng_nid' | translate}}", prop="lng_nid", [width]='auto')
+							ngx-datatable-column(name="{{'frm.language.lng_vcod' | translate}}", prop="lng_vcod", [width]='auto')
+							ngx-datatable-column(name="{{'frm.language.lng_vname' | translate}}", prop="lng_vname", [width]='auto')
+
+
+						.form-group
+							label {{'frm.language.languagetxtlabel' | translate}} :
+							app-languagetext(
+								placeholder = "{{'frm.language.languagetxtph' | translate}}",
+								[isSearchable] = "true",
+								[value] = "setters.lng_nid",
+								[filtro] ='null',
+								(onChange) = "languageChange($event)" )
+	// *********************************************************************
+	// ###### AGREGAR AL communicator SERVICE  ######
+	// *********************************************************************
+
+	// TODOS LOS EVENTOS HTTP PARA *** LANGUAGE ***
+	// _________________________________________________________________________
+		setLanguage(body: Object) {
+			body = body || {};
+			return this.http.post('/backpani/slanguage', body).map(this.setterFnOk);
+		};
+		getLanguage(body: any) {
+			body = (body && body.hasOwnProperty('scope')) ? body : Object.assign(body || {}, { scope: "CIA" });
+			return this.http.post('/backpani/glanguage', body).map(this.setterFnOk);
+		}
+		delLanguage(body: Object) {
+			body = body || {};
+			return this.http.post('/backpani/dlanguage', body).map(this.setterFnOk);
+		};
+	// |\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/
+
+
+
+	// *********************************************************************
+	// ###### AGREGAR AL ROUTER DE Express  ######
+	// *********************************************************************
+	// TODAS LAS RUTAS PARA *** LANGUAGE ***
+	// _________________________________________________________________________
+		r.post('/dlanguage', candado, (req, res, next) => {
+			processLanguage("dLanguage",req, res)
+		});
+		r.post('/slanguage', candado, (req, res, next) => {
+			processLanguage("sLanguage",req, res)
+		});
+		let processLanguage = (keysql,req, res) => {
+			if	(_SQL.hasOwnProperty(keysql)){
+				_SQL[keysql](req.body, req.session)
+				.then((datos) => {
+					try {
+						RAM.language({ match: req.session.user }, 1).then((res) => {
+							req.app.io.in('cia_' + req.session.user.cia_nid).emit('dbquery', Object.assign({ origen: 'language' }, res));
+						});
+					} catch (ex) {
+						console.log(ex);
+						req.app.io.in('session_' + req.session.id).emit('backendError',{msg:"backend.EX003", err: ex});
+					}
+					res.send(datos);
+				}, (datos) => { run.fail(datos, res, req) })
+			}else{
+				res.send({type: 'paramsError', msg: "backend.EX001", error: {key: keysql } });
+			}
+		};
+		r.post('/glanguage', candado, (req, res, next) => {
+			_SQL.gLanguage(req.body, req.session)
+			.then((data) => {
+				run.resolvestd(data, res, req)
+			})
+			.catch((data) => {
+				run.fail(data,res,req);
+			})
+		});
+	// |\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/
+
+
+	// *********************************************************************
+	// ###### AGREGAR A LA LIBRERIA SQL  ######
+	// *********************************************************************
+	// Metodos SQL PARA *** LANGUAGE ***
+	// _________________________________________________________________________
+		sql.sLanguage = (body, session) => {
+			body = body || {};
+			let deferred = q.defer();
+
+			//⬇⬇⬇⬇⬇⬇⬇Si la Tabla requiere cia_nid la siguiente linea comprueba su existencia ⬇⬇⬇⬇⬇⬇
+
+			//⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆
+			let params = {
+				data:body,
+				table:'language',
+				key:'lng_nid',
+				where: null,
+				return: '*' //<-usar * para devolcer todo el row afectado o insertado
+			};
+			run.upsert('BS',params, 'sLanguage')
+			.then(x => {
+				deferred.resolve(x)
+			}).catch((res) => {
+				deferred.reject(res);
+			});
+			return deferred.promise;
+		};
+		sql.gLanguage=(options,session)=>{
+			return new Promise((resolve, reject)=>{
+				try{
+					if (!(options && options.scope)){
+						reject({type: 'dataError', msg: "backend.EX004", error : options });
+					}
+					let strsql = "";
+
+					switch(options.scope){
+						case 'CIA':
+							strsql = SqlString.format('SELECT lng_nid, lng_vcod, lng_vname FROM language  WHERE _bsts = 1 AND cia_nid = ? ORDER BY lng_nid  DESC', [options.match]);
+							break;
+						case 'CIAALL':
+							strsql = SqlString.format('SELECT lng_nid, lng_vcod, lng_vname FROM language  WHERE cia_nid = ? ORDER BY lng_nid  DESC', [options.match]);
+							break;
+						case 'ALL':
+							strsql = 'SELECT lng_nid, lng_vcod, lng_vname FROM language  ORDER BY lng_nid DESC';
+							break;
+						default:
+							process.nextTick(()=>{
+								reject({type: 'dataError', msg: "backend.EX001", error : options });
+							});
+							return;
+					}; //==>> Guarda el resultado final del HTML
+
+					run.query('BS',strsql, 'gLanguage').then(data=>{
+						try{
+							resolve(data);
+						}catch(ex){
+							console.log(ex);
+						}
+					}).catch(err => {
+						reject(err);
+					});
+				}catch(ex){
+					console.log(ex)
+				}
+			});
+		};
+		sql.dLanguage = (body, session) => {
+			body = body || {};
+
+			let cia_nid = session.cia_nid;
+			if (session.user && session.user.usr_nsuper*1 == 1) {
+				if (body.cia_nid) {
+					cia_nid = body.cia_nid
+				}
+			}
+
+			let deferred = q.defer();
+			let params = {
+				table: 'language',
+				key: 'lng_nid',
+				value: body.lng_nid,
+				reqCia: false,
+				cia: cia_nid
+			};
+			run.delete(params, 'dLanguage')
+				.then(
+				x => {
+					deferred.resolve(x)
+				}
+				)
+				.catch(
+				(res) => {
+					deferred.reject(res);
+				}
+				);
+			return deferred.promise;
+		};
+	// |\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/
+
+	// Metodos RAM_DB *** LANGUAGE ***
+	// _________________________________________________________________________
+		ramdata.language = (qryp, strict) => {
+			let deferred = q.defer();
+			!repo.hasOwnProperty('language') && (repo['language'] = []);
+			if ((repo.language.length == 0) || (strict && strict == 1)) {
+				try {
+					_SQL.gLanguage({
+						scope: 'CIA',
+						match: 0
+					})
+						.then((res) => {
+							resolvestd(res, qryp, "language", deferred)
+						})
+						.catch((res) => {
+							console.log("No hay respuesta");
+							deferred.reject(res);
+						})
+				} catch (ex) {
+					console.log(ex);
+				}
+			} else {
+				process.nextTick(() => {
+					deferred.resolve({ type: "ok", datos: repo.language, qrtype: 'RAM' });
+				});
+			}
+			return deferred.promise;
+		};
+	// |\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/
+
+
+	// Para el Component de busqueda Usar comando
+	// ng g c shared/components/languagetext
+	// ng g c routes/*&***&**/language
+	languageChange(e){
+		if (e) {
+			this.frmdata.lng_nid = e.lng_nid;
+		}else{
+			this.frmdata.lng_nid = null;
+		}
+	}
+	//Esto va en la funcion Edit ⬇⬇⬇
+	this.setters.lng_nid = { lng_nid: rw["lng_nid"]};
+	// Setter dede incluir
+	//public setters={ lng_nid : null, }
+	//
+// &&&&&&&&&&&&&&&&&&&&&&&&********************************&&&&&&&&&&&&&&&&&&
+// &&&&&&&&&&&&&&&&&&&&&&&&********************************&&&&&&&&&&&&&&&&&&
+// &&&&&&&&&&&&&&&&&&&&&&&&********************************&&&&&&&&&&&&&&&&&&
+
+			import { Component, EventEmitter, Input, Output, OnInit, OnDestroy } from '@angular/core';
+			import { RamdataService } from '@shared/services/ramdata.service';
+			import { FrmworkService } from '@shared/services/frmwork.service';
+			import { SettingsService } from '@core/settings/settings.service';
+			import { Subject } from 'rxjs/Subject';
+
+			@Component({
+				selector: 'app-languagetext',
+				template: `
+					<ng-select
+					[items]="items"
+				placeholder = "{{placeholder}}"
+				[searchable] = "isSearchable"
+				[searchFn] = "_buscar"
+					(clear) = "_clear()"
+						(change) = "_onChange($event)"
+				loadingText = "Bigtrack ... "
+				[(ngModel)] = "_value"
+					>
+					<ng-template ng-option-tmp let-item="item">
+						{{ item.label }}:{{ item.id }}<br />
+						<small>{{ item.text }}</small>
+					</ng-template>
+					</ng-select >
+				`
+			})
+			export class LanguagetextComponent implements OnInit {
+				private destroy$: Subject<boolean> = new Subject<boolean>();
+				public items: Array<Object> = [];
+				public _filtro: Object = null;
+				public _value: Object = {};
+				public rawData = [];
+
+				@Input() placeholder: String = "Seleccione &&&&&";
+				@Input() isSearchable:boolean = true;
+
+				public lastValue:object = null
+				@Input("value")
+				set value(e: Object) {
+					this.applyFilter(e);
+					this.lastValue = e;
+				};
+				applyFilter(e){
+					if (e && e["lng_nid"]) {
+						let rw: any = this.rawData.find( (el:any) => el.hasOwnProperty('lng_nid') && el['lng_nid'] == e['lng_nid'] );
+						if (rw !== undefined) {
+							this._value = {
+								id: rw.lng_nid,
+								label: rw.labelField&&&,
+								text: rw.textField&&&,
+							};
+							return;
+						}
+					}
+					this._value = {};
+				}
+
+				@Input("filtro")
+				set filtro(e: Object) {
+					let ittm = this.items;
+					if (!!e) {
+						this._filtro = e;
+						ittm = this.dataTransform(this.rawData);
+					}else{
+						!!this._filtro && (this._filtro = null) || (ittm  = this.dataTransform(this.rawData))
+						this._filtro = null;
+					}
+					this.items = [...ittm];
+				}
+				@Output()
+				onChange = new EventEmitter();
+				constructor(public fwk: FrmworkService, public ram: RamdataService, private setting :SettingsService) {}
+				_onChange(e){
+					try {
+						if (!e) { this.onChange.emit(null); return; }
+						let rw: any = this.rawData.find((el: any) => el.hasOwnProperty('lng_nid') && el['lng_nid'] == e['id']);
+						this.onChange.emit(rw);
+					} catch (error) {
+						console.error(error);
+					}
+				}
+				_clear(){
+					this.onChange.emit(null);
+				}
+				_buscar(term: string, item: any) {
+					try{
+						!!term && (term = term.toLocaleLowerCase());
+						return item.label.toLocaleLowerCase().indexOf(term) > -1 || item.text.toLocaleLowerCase().indexOf(term) >-1 || item.id.toString() == term;
+					}catch(ex){
+						return false;
+					}
+				}
+				dataTransform(data:Array<{}>):Array<{}>{
+					try {
+						let filtered = data;
+						if (this._filtro) {
+							filtered = data.filter(el=>{
+								for (const key in this._filtro) {
+									if(el.hasOwnProperty(key)){
+										if (el[key] !== this._filtro[key]) return false;
+									}else{
+										return false;
+									}
+								}
+								return true;
+							});
+						}
+						return filtered.map(el=> {
+							return {
+								id: el['lng_nid'],
+								label: el['labelField&&&'],
+								text: el["textField&&&"]}
+						});
+					} catch (error) {
+						console.error(error);
+						return [];
+					}
+				}
+				ngOnInit() {
+
+					this.ram.getDatos("language").takeUntil(this.destroy$).subscribe(data => {
+						this.rawData = data;
+						this.items = [...this.dataTransform(data)];
+						this.applyFilter(this.lastValue);
+					});
+				}
+				ngOnDestroy() {
+					this.destroy$.next(true);
+					this.destroy$.unsubscribe();
+				};
+			}
+
+// &&&&&&&&&&&&&&&&&&&&&&&&********************************&&&&&&&&&&&&&&&&&&
+// &&&&&&&&&&&&&&&&&&&&&&&&********************************&&&&&&&&&&&&&&&&&&
+// &&&&&&&&&&&&&&&&&&&&&&&&********************************&&&&&&&&&&&&&&&&&&

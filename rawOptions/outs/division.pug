@@ -1,0 +1,740 @@
+
+	doctype html
+	html
+	head
+		script(type='text/javascript')
+			import { Component, OnInit, ViewEncapsulation, ViewChild, OnDestroy, NgZone } from '@angular/core';
+			import { TranslateService } from '@ngx-translate/core';
+
+			import { FrmworkService } from "@shared/services/frmwork.service";
+			import { CommunicatorService } from "@shared/services/communicator.service";
+			import { RamdataService } from "@shared/services/ramdata.service";
+			import { SettingsService } from "@core/settings/settings.service";
+			import { DatatableComponent } from "@swimlane/ngx-datatable"
+
+			import { Subject } from 'rxjs/Subject';
+			import { BehaviorSubject } from 'rxjs/BehaviorSubject';
+			const swal = require('sweetalert');
+			declare let jQuery: any;
+			@Component({
+				selector: 'app-division',
+				templateUrl: './division.component.html',
+				styleUrls: ['./division.component.scss']
+			})
+			export class DivisionComponent implements OnInit, OnDestroy {
+				private destroy$: Subject<boolean> = new Subject<boolean>();
+				public rows = [];
+				public filterRslt = [];
+				public filterstr = "";
+				public filterTimer = null;
+				loadingIndicator: boolean = true;
+
+							public frmdata = {
+				div_nid :0,
+				div_vname : '' ,
+				div_vaddress : '' ,
+				div_bsts :''0'',
+				cia_nid :0
+			};
+			public setters = {
+			
+			};
+
+				// public isSuper = false; // =>> Si la tabla requiere identificacion por Compañias
+
+				@ViewChild("table") table : DatatableComponent;
+				constructor(
+					public fwk: FrmworkService, private translate: TranslateService,
+					public ram: RamdataService, public communicator: CommunicatorService,
+					public settings: SettingsService,
+					public zn: NgZone){
+
+					// Si la tabla requiere identificacion por Compañias
+					this.settings.credencialesS.takeUntil(this.destroy$).subscribe(x=>{
+						try{
+							this.frmdata.cia_nid = x['user']['cia_nid'];
+						}catch(ex){
+							this.frmdata.cia_nid = 0;
+						}
+					});
+
+					this.ram.getDatos("division").takeUntil(this.destroy$).subscribe(data => {
+						zn.run(()=>{
+							this.rows = data;
+							this.updateFilter(null);
+						});
+					});
+					this.resetForm(null);
+				}
+
+				editBtn(e,rw){
+					e && e.preventDefault();
+
+					this.resetForm(null);
+					for (let key in rw) {
+						if (this.frmdata.hasOwnProperty(key)) {
+							this.frmdata[key] = rw[key];
+						}
+					};
+					this.frmdata.**_bsts == rw.**_bsts ? '1' : '0';
+					// Sugerencia de edicion pata los tags
+					
+				};
+				viewBtn(e, rw) {
+					e && e.preventDefault();
+				};
+				delBtn(e, rw) {
+					e && e.preventDefault();
+					// if (rw.ESTADO  !=  0) {
+					// 	swal(
+					// 		'Ops',
+					// 		this.translate.instant('ALGUN ERROR POR RESTRICCION DE BORRADO'),
+					// 		'warning'
+					// 	)
+					// 	return;
+					// }
+					swal({
+						title: this.translate.instant('rotulos.swal.deltit'),
+						text: this.translate.instant('rotulos.swal.delquest'),
+						type: 'warning',
+						showCancelButton: true,
+						confirmButtonText: this.translate.instant('rotulos.swal.yesdel'),
+						cancelButtonText: 'No.'
+					}).then((result) => {
+						if (result.value) {
+							this.communicator.delDivision(rw).subscribe(x => {
+								// console.log(x);
+								if (x.hasOwnProperty('type') && x['type'] == 'ok') {
+									swal(
+										'Deleted',
+										'Ok!',
+										'success'
+									)
+								}else{
+									swal(
+										'Ops',
+										this.translate.instant(x['msg']) || "Somthing wrong...",
+										'warning'
+									)
+								}
+							});
+						}
+					});
+				};
+				saveBtn(e) {
+					e && e.preventDefault();
+					// ***** los tags a String en caso que existan
+					
+					// *******************************************************
+					// VALIDAR LA INFORMACION ANTES DE HACER EL POST
+					// *******************************************************
+					let paso = true;
+					!this.fwk.validInt(this.frmdata.div_nid, 0, null) && ( (paso = false) || this.fwk.toast('warning', 'BigTrack', this.translate.instant('frm.division.div_nid_rq')) )
+				!this.fwk.validString(this.frmdata.div_vname, 2, 150) && ( (paso = false) || this.fwk.toast('warning', 'BigTrack', this.translate.instant('frm.division.div_vname_rq')) )
+				!this.fwk.validString(this.frmdata.div_vaddress, 2, 150) && ( (paso = false) || this.fwk.toast('warning', 'BigTrack', this.translate.instant('frm.division.div_vaddress_rq')) )
+				!this.fwk.validInt(this.frmdata.cia_nid, 0, 2147483647) && ( (paso = false) || this.fwk.toast('warning', 'BigTrack', this.translate.instant('frm.division.cia_nid_rq')) )
+
+					if	(paso){
+						this.communicator.setDivision(this.frmdata).subscribe(x => {
+							x.datos.recordset && x.datos.recordset[0] && x.datos.recordset[0].lastid && (this.frmdata.div_nid = x.datos.recordset[0].lastid);
+						});
+					}
+				};
+				resetForm(e) {
+					e && e.preventDefault();
+					// resetear con la formdata
+				};
+				updateFilter(e) {
+					this.loadingIndicator = true;
+					e && e.hasOwnProperty('preventDefault') && e.preventDefault();
+					this.filterTimer && clearTimeout(this.filterTimer)
+					this.filterTimer = setTimeout(() => {
+						if (this.filterstr.trim().length>0)
+							this.filterRslt = this.rows.filter((val, idx, arr)=>{
+								return Object.keys(val).reduce((acum,current,idx)=>{
+									val[current] && (acum = acum + '_' + val[current].toString());
+									return acum;
+								}, "").toUpperCase().indexOf(this.filterstr.toUpperCase()) > -1
+							})
+						else {this.filterRslt = this.rows}
+						setTimeout(() => {
+							this.loadingIndicator = false;
+						}, 200);
+					}, 700);
+				}
+
+				reload(e){
+					e && e.preventDefault();
+					this.loadingIndicator = true;
+					if (e  && e.altKey) {
+						this.communicator.getDivision(null).subscribe(x => {
+							x && x.hasOwnProperty('type') && x.type == 'ok' &&  (this.rows = x.datos);
+							this.updateFilter(null);
+						});
+					}else
+						this.ram.getDatos("division",1,1);
+				}
+				ngOnInit() {
+				};
+				ngOnDestroy() {
+					this.destroy$.next(true);
+					this.destroy$.unsubscribe();
+				};
+							division :{
+	"div_nid": {
+		"columna": "div_nid",
+		"predeterminado": null,
+		"IS_NULLABLE": "NO",
+		"datatype": "int",
+		"maxlength": 0,
+		"nsize": 10,
+		"scala": 0,
+		"primario": 1
+	},
+	"div_vname": {
+		"columna": "div_vname",
+		"predeterminado": null,
+		"IS_NULLABLE": "NO",
+		"datatype": "varchar",
+		"maxlength": 150,
+		"nsize": 0,
+		"scala": 0,
+		"primario": 0
+	},
+	"div_vaddress": {
+		"columna": "div_vaddress",
+		"predeterminado": null,
+		"IS_NULLABLE": "YES",
+		"datatype": "varchar",
+		"maxlength": 150,
+		"nsize": 0,
+		"scala": 0,
+		"primario": 0
+	},
+	"div_bsts": {
+		"columna": "div_bsts",
+		"predeterminado": "((1))",
+		"IS_NULLABLE": "NO",
+		"datatype": "bit",
+		"maxlength": 0,
+		"nsize": 0,
+		"scala": 0,
+		"primario": 0
+	},
+	"cia_nid": {
+		"columna": "cia_nid",
+		"predeterminado": null,
+		"IS_NULLABLE": "NO",
+		"datatype": "int",
+		"maxlength": 0,
+		"nsize": 10,
+		"scala": 0,
+		"primario": 0
+	}
+}
+			division : {
+				div_nid : "div_nid",
+				div_vname : "div_vname",
+				div_vaddress : "div_vaddress",
+				div_bsts0 : "NO",
+				div_bsts1 : "SI",
+				div_bsts : "div_bsts",
+				cia_nid : "cia_nid",
+				div_nid_ph : "div_nid_txt" ,
+				div_vname_ph : "div_vname_txt" ,
+				div_vaddress_ph : "div_vaddress_txt" ,
+				div_bsts_ph : "div_bsts_txt" ,
+				cia_nid_ph : "cia_nid_txt" ,
+				divisiontxtlabel : "divisiontxtlabel" ,
+				divisiontxtph : "divisiontxtph" ,
+				tit : "Titulo Division" ,
+				div_nid_th : "div_nid_txt" ,
+				div_vname_th : "div_vname_txt" ,
+				div_vaddress_th : "div_vaddress_txt" ,
+				div_bsts_th : "div_bsts_txt" ,
+				cia_nid_th : "cia_nid_txt" ,
+				div_nid_rq : "div_nid_txt es invalido" ,
+				div_vname_rq : "div_vname_txt es invalido" ,
+				div_vaddress_rq : "div_vaddress_txt es invalido" ,
+				div_bsts_rq : "div_bsts_txt es invalido" ,
+				cia_nid_rq : "cia_nid_txt es invalido" 
+			},
+
+				body
+				div(class="content-heading") {{'frm.division.tit' | translate}}
+				.row
+					.col-sm-5
+						.card.card-default
+							.card-header
+								span {{"frm.division.frmtit" | translate}}
+								a.text-muted.float-right(tooltip="{{'rot.reload' | translate}}",  (click)= "reload($event)")
+									em.icon-reload
+								.text-muted.float-right
+									| &nbsp; &nbsp;
+								a.text-muted.float-right(tooltip="{{'rot.new' | translate}}", (click)= "resetForm($event)")
+									em.icon-doc
+							.card-body
+								form.form-validate.mb-3(role="form")
+									//- ****************************************** -//
+								//- *********** div_nid ************ -//
+								//- PrimaryKey Hiden
+								input.form-control(type="hidden", readonly, [(ngModel)]= "frmdata.div_nid", name="div_nid")
+								//- PrimaryKey Visible
+								.form-group
+									label {{'frm.division.div_nid' | translate}} :
+									input.form-control(type="number", placeholder="{{'frm.division.div_nid_ph' | translate}}", readonly, [(ngModel)]= "frmdata.div_nid", name="div_nid")
+									.text-danger(*ngIf="(div_nid.errors?.required ) && (div_nid.dirty || div_nid.touched)") {{'frm.division.div_nid_rq' | translate}}
+								//- ******************************************
+								
+
+
+								//- ****************************************** -//
+								//- *********** div_vname ************ -//
+								.form-group
+									label {{'frm.division.div_vname' | translate}} :
+									.input-group.with-focus
+										input.form-control(type="text", placeholder="{{'frm.division.div_vname_ph' | translate}}", [(ngModel)]="frmdata.div_vname", name="div_vname", #div_vname="ngModel", required, minlength="2", maxlength="150")
+									.text-danger(*ngIf="(div_vname.errors?.required || div_vname.errors ?.minlength) && (div_vname.dirty || div_vname.touched)") {{'frm.division.div_vname_rq' | translate}}
+								//- ******************************************
+								
+
+
+								//- ****************************************** -//
+								//- *********** div_vaddress ************ -//
+								.form-group
+									label {{'frm.division.div_vaddress' | translate}} :
+									.input-group.with-focus
+										input.form-control(type="text", placeholder="{{'frm.division.div_vaddress_ph' | translate}}", [(ngModel)]="frmdata.div_vaddress", name="div_vaddress", #div_vaddress="ngModel", required, minlength="2", maxlength="150")
+									.text-danger(*ngIf="(div_vaddress.errors?.required || div_vaddress.errors ?.minlength) && (div_vaddress.dirty || div_vaddress.touched)") {{'frm.division.div_vaddress_rq' | translate}}
+								//- ******************************************
+								
+
+
+								//- ****************************************** -//
+								//- *********** div_bsts ************ -//
+								.form-group
+									label {{'frm.division.div_bsts' | translate}} :
+									//- CheckBoxsOptions
+									br
+									label.c-radio
+										input#inlineradio1(type="radio", name="div_bsts", value="0", [(ngModel)]="frmdata.div_bsts", checked="checked")
+										span.fa.fa-check
+										| {{'frm.division.div_bsts0' | translate}}
+									label.c-radio
+										input#inlineradio1(type="radio", name="div_bsts", value="1", [(ngModel)]="frmdata.div_bsts" )
+										span.fa.fa-check
+										| {{'frm.division.div_bsts1' | translate}}
+								//- ******************************************
+								
+
+
+								//- ****************************************** -//
+								//- *********** cia_nid ************ -//
+								.form-group
+									label {{'frm.division.cia_nid' | translate}} :
+									.input-group.with-focus
+										input.form-control(type="number",required ,min="-2147483648", max="2147483647", placeholder="{{'frm.division.cia_nid_ph' | translate}}", [(ngModel)]= "frmdata.cia_nid", name="cia_nid")
+									.text-danger(*ngIf="cia_nid.errors?.required && (cia_nid.dirty || cia_nid.touched)") {{'frm.division.cia_nid_rq' | translate}}
+								//- ******************************************
+								
+
+
+									button.btn.btn-success.mb-xs(role="button", (click) = "saveBtn($event)")
+										i.big-check
+										| {{'btns.safe' | translate}}
+
+					.col-md-7
+						input.form-control.form-control-rounded(type='text',
+							placeholder='{{"rot.filter" | translate}}',
+							style='padding:8px;margin:0px auto 10px auto;width:90%;',
+							(keyup)='updateFilter($event)',
+							[(ngModel)]="filterstr")
+
+						ngx-datatable.material.fullscreen(
+							#table='',
+							[rows]='filterRslt',
+							[columnMode]="'force'",
+							[headerHeight]="50",
+							[footerHeight]="50",
+							[sortType]="'multi'",
+							[rowHeight]="40",
+							[scrollbarV]="false",
+							[scrollbarH]="true",
+							[reorderable]="true",
+							[swapColumns]="false",
+							[limit]="10",
+							[loadingIndicator]="loadingIndicator")
+							ngx-datatable-column(
+								name="Edit",
+								[width]='55',
+								[sortable]="false",
+								[canAutoResize]="false",
+								[draggable]="false",
+								[resizeable]="false")
+								ng-template(let-row="row", ngx-datatable-cell-template="")
+									button.btn.btn-sm.btn-outline-info((click)="editBtn($event,row)", tooltip= "{{'btns.edit' | translate}}")
+									i.icon.fa.fa-edit
+							ngx-datatable-column(name="{{'frm.division.div_nid' | translate}}", prop="div_nid", [width]='auto')
+							ngx-datatable-column(name="{{'frm.division.div_vname' | translate}}", prop="div_vname", [width]='auto')
+							ngx-datatable-column(name="{{'frm.division.div_vaddress' | translate}}", prop="div_vaddress", [width]='auto')
+							ngx-datatable-column(name="{{'frm.division.div_bsts' | translate}}", prop="div_bsts", [width]='auto')
+							ngx-datatable-column(name="{{'frm.division.cia_nid' | translate}}", prop="cia_nid", [width]='auto')
+
+
+						.form-group
+							label {{'frm.division.divisiontxtlabel' | translate}} :
+							app-divisiontext(
+								placeholder = "{{'frm.division.divisiontxtph' | translate}}",
+								[isSearchable] = "true",
+								[value] = "setters.div_nid",
+								[filtro] ='null',
+								(onChange) = "divisionChange($event)" )
+	// *********************************************************************
+	// ###### AGREGAR AL communicator SERVICE  ######
+	// *********************************************************************
+
+	// TODOS LOS EVENTOS HTTP PARA *** DIVISION ***
+	// _________________________________________________________________________
+		setDivision(body: Object) {
+			body = body || {};
+			return this.http.post('/backpani/sdivision', body).map(this.setterFnOk);
+		};
+		getDivision(body: any) {
+			body = (body && body.hasOwnProperty('scope')) ? body : Object.assign(body || {}, { scope: "CIA" });
+			return this.http.post('/backpani/gdivision', body).map(this.setterFnOk);
+		}
+		delDivision(body: Object) {
+			body = body || {};
+			return this.http.post('/backpani/ddivision', body).map(this.setterFnOk);
+		};
+	// |\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/
+
+
+
+	// *********************************************************************
+	// ###### AGREGAR AL ROUTER DE Express  ######
+	// *********************************************************************
+	// TODAS LAS RUTAS PARA *** DIVISION ***
+	// _________________________________________________________________________
+		r.post('/ddivision', candado, (req, res, next) => {
+			processDivision("dDivision",req, res)
+		});
+		r.post('/sdivision', candado, (req, res, next) => {
+			processDivision("sDivision",req, res)
+		});
+		let processDivision = (keysql,req, res) => {
+			if	(_SQL.hasOwnProperty(keysql)){
+				_SQL[keysql](req.body, req.session)
+				.then((datos) => {
+					try {
+						RAM.division({ match: req.session.user }, 1).then((res) => {
+							req.app.io.in('cia_' + req.session.user.cia_nid).emit('dbquery', Object.assign({ origen: 'division' }, res));
+						});
+					} catch (ex) {
+						console.log(ex);
+						req.app.io.in('session_' + req.session.id).emit('backendError',{msg:"backend.EX003", err: ex});
+					}
+					res.send(datos);
+				}, (datos) => { run.fail(datos, res, req) })
+			}else{
+				res.send({type: 'paramsError', msg: "backend.EX001", error: {key: keysql } });
+			}
+		};
+		r.post('/gdivision', candado, (req, res, next) => {
+			_SQL.gDivision(req.body, req.session)
+			.then((data) => {
+				run.resolvestd(data, res, req)
+			})
+			.catch((data) => {
+				run.fail(data,res,req);
+			})
+		});
+	// |\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/
+
+
+	// *********************************************************************
+	// ###### AGREGAR A LA LIBRERIA SQL  ######
+	// *********************************************************************
+	// Metodos SQL PARA *** DIVISION ***
+	// _________________________________________________________________________
+		sql.sDivision = (body, session) => {
+			body = body || {};
+			let deferred = q.defer();
+
+			//⬇⬇⬇⬇⬇⬇⬇Si la Tabla requiere cia_nid la siguiente linea comprueba su existencia ⬇⬇⬇⬇⬇⬇
+			body['cia_nid'] = session.user.cia_nid;
+			//⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆
+			let params = {
+				data:body,
+				table:'division',
+				key:'div_nid',
+				where: null,
+				return: '*' //<-usar * para devolcer todo el row afectado o insertado
+			};
+			run.upsert('BS',params, 'sDivision')
+			.then(x => {
+				deferred.resolve(x)
+			}).catch((res) => {
+				deferred.reject(res);
+			});
+			return deferred.promise;
+		};
+		sql.gDivision=(options,session)=>{
+			return new Promise((resolve, reject)=>{
+				try{
+					if (!(options && options.scope)){
+						reject({type: 'dataError', msg: "backend.EX004", error : options });
+					}
+					let strsql = "";
+					!options.hasOwnProperty('match') && (options['match'] = session.user.cia_nid);
+					switch(options.scope){
+						case 'CIA':
+							strsql = SqlString.format('SELECT div_nid, div_vname, div_vaddress, div_bsts, cia_nid FROM division  WHERE _bsts = 1 AND cia_nid = ? ORDER BY div_nid  DESC', [options.match]);
+							break;
+						case 'CIAALL':
+							strsql = SqlString.format('SELECT div_nid, div_vname, div_vaddress, div_bsts, cia_nid FROM division  WHERE cia_nid = ? ORDER BY div_nid  DESC', [options.match]);
+							break;
+						case 'ALL':
+							strsql = 'SELECT div_nid, div_vname, div_vaddress, div_bsts, cia_nid FROM division  ORDER BY div_nid DESC';
+							break;
+						default:
+							reject({type: 'dataError', msg: "backend.EX001", error : options });
+							return;
+					}; //==>> Guarda el resultado final del HTML
+
+					run.query('BS',strsql, 'gDivision').then(data=>{
+						try{
+							resolve(data);
+						}catch(ex){
+							console.log(ex);
+						}
+					}).catch(err => {
+						reject(err);
+					});
+				}catch(ex){
+					console.log(ex)
+				}
+			});
+		};
+		sql.dDivision = (body, session) => {
+			body = body || {};
+
+			let cia_nid = session.cia_nid;
+			if (session.user && session.user.usr_nsuper*1 == 1) {
+				if (body.cia_nid) {
+					cia_nid = body.cia_nid
+				}
+			}
+
+			let deferred = q.defer();
+			let params = {
+				table: 'division',
+				key: 'div_nid',
+				value: body.div_nid,
+				reqCia: true,
+				cia: cia_nid
+			};
+			run.delete(params, 'dDivision')
+				.then(
+				x => {
+					deferred.resolve(x)
+				}
+				)
+				.catch(
+				(res) => {
+					deferred.reject(res);
+				}
+				);
+			return deferred.promise;
+		};
+	// |\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/
+
+	// Metodos RAM_DB *** DIVISION ***
+	// _________________________________________________________________________
+		ramdata.division = (qryp, strict) => {
+			let deferred = q.defer();
+			!repo.hasOwnProperty('division') && (repo['division'] = {});
+
+			let cia_nid = qryp.match.cia_nid;
+			!repo.division.hasOwnProperty(cia_nid) && (repo.division[cia_nid] = [] );
+			if ((repo.division[cia_nid].length == 0) || (strict && strict == 1)) {
+				try {
+					_SQL.gDivision({
+						scope: 'CIA',
+						match: cia_nid
+					})
+						.then((res) => {
+							resolvestd(res, qryp, "division", deferred)
+						})
+						.catch((res) => {
+							console.log("No hay respuesta");
+							deferred.reject(res);
+						})
+				} catch (ex) {
+					console.log(ex);
+				}
+			} else {
+				process.nextTick(() => {
+					deferred.resolve({ type: "ok", datos: repo.division[cia_nid], qrtype: 'RAM' });
+				});
+			}
+			return deferred.promise;
+		};
+	// |\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/
+
+
+	// Para el Component de busqueda Usar comando
+	// ng g c shared/components/divisiontext
+	// ng g c routes/*&***&**/division
+	divisionChange(e){
+		if (e) {
+			this.frmdata.div_nid = e.div_nid;
+		}else{
+			this.frmdata.div_nid = null;
+		}
+	}
+	//Esto va en la funcion Edit ⬇⬇⬇
+	this.setters.div_nid = { div_nid: rw["div_nid"]};
+	// Setter dede incluir
+	//public setters={ div_nid : null, }
+	//
+// &&&&&&&&&&&&&&&&&&&&&&&&********************************&&&&&&&&&&&&&&&&&&
+// &&&&&&&&&&&&&&&&&&&&&&&&********************************&&&&&&&&&&&&&&&&&&
+// &&&&&&&&&&&&&&&&&&&&&&&&********************************&&&&&&&&&&&&&&&&&&
+
+			import { Component, EventEmitter, Input, Output, OnInit, OnDestroy } from '@angular/core';
+			import { RamdataService } from '@shared/services/ramdata.service';
+			import { FrmworkService } from '@shared/services/frmwork.service';
+			import { SettingsService } from '@core/settings/settings.service';
+			import { Subject } from 'rxjs/Subject';
+
+			@Component({
+				selector: 'app-divisiontext',
+				template: `
+					<ng-select
+					[items]="items"
+				placeholder = "{{placeholder}}"
+				[searchable] = "isSearchable"
+				[searchFn] = "_buscar"
+					(clear) = "_clear()"
+						(change) = "_onChange($event)"
+				loadingText = "Bigtrack ... "
+				[(ngModel)] = "_value"
+					>
+					<ng-template ng-option-tmp let-item="item">
+						{{ item.label }}:{{ item.id }}<br />
+						<small>{{ item.text }}</small>
+					</ng-template>
+					</ng-select >
+				`
+			})
+			export class DivisiontextComponent implements OnInit {
+				private destroy$: Subject<boolean> = new Subject<boolean>();
+				public items: Array<Object> = [];
+				public _filtro: Object = null;
+				public _value: Object = {};
+				public rawData = [];
+
+				@Input() placeholder: String = "Seleccione &&&&&";
+				@Input() isSearchable:boolean = true;
+
+				public lastValue:object = null
+				@Input("value")
+				set value(e: Object) {
+					this.applyFilter(e);
+					this.lastValue = e;
+				};
+				applyFilter(e){
+					if (e && e["div_nid"]) {
+						let rw: any = this.rawData.find( (el:any) => el.hasOwnProperty('div_nid') && el['div_nid'] == e['div_nid'] );
+						if (rw !== undefined) {
+							this._value = {
+								id: rw.div_nid,
+								label: rw.labelField&&&,
+								text: rw.textField&&&,
+							};
+							return;
+						}
+					}
+					this._value = {};
+				}
+
+				@Input("filtro")
+				set filtro(e: Object) {
+					let ittm = this.items;
+					if (!!e) {
+						this._filtro = e;
+						ittm = this.dataTransform(this.rawData);
+					}else{
+						!!this._filtro && (this._filtro = null) || (ittm  = this.dataTransform(this.rawData))
+						this._filtro = null;
+					}
+					this.items = [...ittm];
+				}
+				@Output()
+				onChange = new EventEmitter();
+				constructor(public fwk: FrmworkService, public ram: RamdataService, private setting :SettingsService) {}
+				_onChange(e){
+					try {
+						if (!e) { this.onChange.emit(null); return; }
+						let rw: any = this.rawData.find((el: any) => el.hasOwnProperty('div_nid') && el['div_nid'] == e['id']);
+						this.onChange.emit(rw);
+					} catch (error) {
+						console.error(error);
+					}
+				}
+				_clear(){
+					this.onChange.emit(null);
+				}
+				_buscar(term: string, item: any) {
+					try{
+						!!term && (term = term.toLocaleLowerCase());
+						return item.label.toLocaleLowerCase().indexOf(term) > -1 || item.text.toLocaleLowerCase().indexOf(term) >-1 || item.id.toString() == term;
+					}catch(ex){
+						return false;
+					}
+				}
+				dataTransform(data:Array<{}>):Array<{}>{
+					try {
+						let filtered = data;
+						if (this._filtro) {
+							filtered = data.filter(el=>{
+								for (const key in this._filtro) {
+									if(el.hasOwnProperty(key)){
+										if (el[key] !== this._filtro[key]) return false;
+									}else{
+										return false;
+									}
+								}
+								return true;
+							});
+						}
+						return filtered.map(el=> {
+							return {
+								id: el['div_nid'],
+								label: el['labelField&&&'],
+								text: el["textField&&&"]}
+						});
+					} catch (error) {
+						console.error(error);
+						return [];
+					}
+				}
+				ngOnInit() {
+
+					this.ram.getDatos("division").takeUntil(this.destroy$).subscribe(data => {
+						this.rawData = data;
+						this.items = [...this.dataTransform(data)];
+						this.applyFilter(this.lastValue);
+					});
+				}
+				ngOnDestroy() {
+					this.destroy$.next(true);
+					this.destroy$.unsubscribe();
+				};
+			}
+
+// &&&&&&&&&&&&&&&&&&&&&&&&********************************&&&&&&&&&&&&&&&&&&
+// &&&&&&&&&&&&&&&&&&&&&&&&********************************&&&&&&&&&&&&&&&&&&
+// &&&&&&&&&&&&&&&&&&&&&&&&********************************&&&&&&&&&&&&&&&&&&
+	

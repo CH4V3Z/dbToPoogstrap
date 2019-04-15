@@ -1,0 +1,575 @@
+
+	doctype html
+	html
+	head
+		script(type='text/javascript')
+			import { Component, OnInit, ViewEncapsulation, ViewChild, OnDestroy } from '@angular/core';
+			import { TranslateService } from '@ngx-translate/core';
+
+			import { FrameworkService } from "@shared/services/framework.service";
+			import { CrudService } from "@shared/services/crud.service";
+			import { RammemoryService } from "@shared/services/rammemory.service";
+			import { SettingsService } from "@shared/services/settings.service";
+
+			import { Subject } from 'rxjs/Subject';
+			import { BehaviorSubject } from 'rxjs/BehaviorSubject';
+			import Swal from 'sweetalert2'
+			declare let jQuery: any;
+
+
+			// export class [Tu nombre de componenr] implements OnInit, OnDestroy {
+			private destroy$: Subject<boolean> = new Subject<boolean>();
+
+			let  gpsmodels : {
+				mdl_nid : "mdl_nid",
+				mdl_vname : "mdl_vname",
+				brn_nid : "brn_nid",
+				mdl_ndport : "mdl_ndport",
+				mdl_naport : "mdl_naport",
+				mdl_vmanual1 : "mdl_vmanual1",
+				mdl_vmanual2 : "mdl_vmanual2",
+				mdl_vmanual3 : "mdl_vmanual3",
+				mdl_nsts0 : "NO",
+				mdl_nsts1 : "SI",
+				mdl_nsts : "mdl_nsts",
+				mdl_nid_ph : "mdl_nid_txt" ,
+				mdl_vname_ph : "mdl_vname_txt" ,
+				brn_nid_ph : "brn_nid_txt" ,
+				mdl_ndport_ph : "mdl_ndport_txt" ,
+				mdl_naport_ph : "mdl_naport_txt" ,
+				mdl_vmanual1_ph : "mdl_vmanual1_txt" ,
+				mdl_vmanual2_ph : "mdl_vmanual2_txt" ,
+				mdl_vmanual3_ph : "mdl_vmanual3_txt" ,
+				mdl_nsts_ph : "mdl_nsts_txt" ,
+				gpsmodelstxtlabel : "gpsmodelstxtlabel" ,
+				gpsmodelstxtph : "gpsmodelstxtph" ,
+				tit : "Titulo Gpsmodels" ,
+				mdl_nid_th : "mdl_nid_txt" ,
+				mdl_vname_th : "mdl_vname_txt" ,
+				brn_nid_th : "brn_nid_txt" ,
+				mdl_ndport_th : "mdl_ndport_txt" ,
+				mdl_naport_th : "mdl_naport_txt" ,
+				mdl_vmanual1_th : "mdl_vmanual1_txt" ,
+				mdl_vmanual2_th : "mdl_vmanual2_txt" ,
+				mdl_vmanual3_th : "mdl_vmanual3_txt" ,
+				mdl_nsts_th : "mdl_nsts_txt" ,
+				mdl_nid_rq : "mdl_nid_txt es invalido" ,
+				mdl_vname_rq : "mdl_vname_txt es invalido" ,
+				brn_nid_rq : "brn_nid_txt es invalido" ,
+				mdl_ndport_rq : "mdl_ndport_txt es invalido" ,
+				mdl_naport_rq : "mdl_naport_txt es invalido" ,
+				mdl_vmanual1_rq : "mdl_vmanual1_txt es invalido" ,
+				mdl_vmanual2_rq : "mdl_vmanual2_txt es invalido" ,
+				mdl_vmanual3_rq : "mdl_vmanual3_txt es invalido" ,
+				mdl_nsts_rq : "mdl_nsts_txt es invalido"
+			},
+			public frmdata = {
+				mdl_nid : 0 ,
+				mdl_vname :  ''  ,
+				brn_nid : 0 ,
+				mdl_ndport : 0 ,
+				mdl_naport : 0 ,
+				mdl_vmanual1 :  ''  ,
+				mdl_vmanual2 :  ''  ,
+				mdl_vmanual3 :  ''  ,
+				mdl_nsts : '0'
+			};
+			public gpsmodels_rows = [];
+			public gpsmodels_columns = [
+				{key: 'Opc', title: this.translate.instant('rotulos.opc'), orderEnabled: false, searchEnabled: false },
+				{key: 'mdl_nid', title: this.translate.instant('frm.gpsmodels.mdl_nid_th'), orderEnabled: true, searchEnabled: true },
+				{key: 'mdl_vname', title: this.translate.instant('frm.gpsmodels.mdl_vname_th'), orderEnabled: true, searchEnabled: true },
+				{key: 'brn_nid', title: this.translate.instant('frm.gpsmodels.brn_nid_th'), orderEnabled: true, searchEnabled: true },
+				{key: 'mdl_ndport', title: this.translate.instant('frm.gpsmodels.mdl_ndport_th'), orderEnabled: true, searchEnabled: true },
+				{key: 'mdl_naport', title: this.translate.instant('frm.gpsmodels.mdl_naport_th'), orderEnabled: true, searchEnabled: true },
+				{key: 'mdl_vmanual1', title: this.translate.instant('frm.gpsmodels.mdl_vmanual1_th'), orderEnabled: true, searchEnabled: true },
+				{key: 'mdl_vmanual2', title: this.translate.instant('frm.gpsmodels.mdl_vmanual2_th'), orderEnabled: true, searchEnabled: true },
+				{key: 'mdl_vmanual3', title: this.translate.instant('frm.gpsmodels.mdl_vmanual3_th'), orderEnabled: true, searchEnabled: true },
+				{key: 'mdl_nsts', title: this.translate.instant('frm.gpsmodels.mdl_nsts_th'), orderEnabled: true, searchEnabled: true },
+			];
+			public isSuper = false; // =>> Si la tabla requiere identificacion por Compañias
+			public tableconf;
+			constructor(
+				public fws: FrameworkService, private translate: TranslateService,
+				public ram: RammemoryService, public crud: CrudService,
+				public settings: SettingsService){
+				this.tableconf = FrameworkService.table_config;
+				this.tableconf.detailsTemplate = false;
+
+				// Si la tabla requiere identificacion por Compañias
+
+			}
+
+			editBtn(e,rw){
+				e && e.preventDefault();
+
+				this.resetForm(null);
+				for (let key in rw) {
+					if (this.frmdata.hasOwnProperty(key)) {
+						this.frmdata[key] = rw[key];
+					}
+				};
+
+				// Sugerencia de edicion pata los tags
+
+			};
+			viewBtn(e, rw) {
+				e && e.preventDefault();
+			};
+			delBtn(e, rw) {
+				e && e.preventDefault();
+				// if (rw.ESTADO  !=  0) {
+				// 	Swal(
+				// 		'Ops',
+				// 		this.translate.instant('ALGUN ERROR POR RESTRICCION DE BORRADO'),
+				// 		'warning'
+				// 	)
+				// 	return;
+				// }
+				Swal({
+					title: this.translate.instant('rotulos.swal.deltit'),
+					text: this.translate.instant('rotulos.swal.delquest'),
+					type: 'warning',
+					showCancelButton: true,
+					confirmButtonText: this.translate.instant('rotulos.swal.yesdel'),
+					cancelButtonText: 'No.'
+				}).then((result) => {
+					if (result.value) {
+						this.crud.delGpsmodels(rw).subscribe(x => {
+							// console.log(x);
+							if (x.hasOwnProperty('type') && x['type'] == 'ok') {
+								Swal(
+									'Deleted',
+									'Ok!',
+									'success'
+								)
+							}else{
+								Swal(
+									'Ops',
+									this.translate.instant(x['msg']) || "Somthing wrong...",
+									'warning'
+								)
+							}
+						});
+					}
+				});
+			};
+			saveBtn(e) {
+				e && e.preventDefault();
+
+				// ***** los tags a String en caso que existan
+
+
+				// *******************************************************
+				// VALIDAR LA INFORMACION ANTES DE HACER EL POST
+				// *******************************************************
+				let paso = true;
+				!this.fws.validInt(this.frmdata.mdl_nid, 0, null) && ( (paso = false) || this.fws.toast('warning', 'BigTrack', this.translate.instant('frm.gpsmodels.mdl_nid_rq')) )
+				!this.fws.validString(this.frmdata.mdl_vname, 2, 50) && ( (paso = false) || this.fws.toast('warning', 'BigTrack', this.translate.instant('frm.gpsmodels.mdl_vname_rq')) )
+				!this.fws.validInt(this.frmdata.brn_nid, 0, 2147483647) && ( (paso = false) || this.fws.toast('warning', 'BigTrack', this.translate.instant('frm.gpsmodels.brn_nid_rq')) )
+				!this.fws.validInt(this.frmdata.mdl_ndport, 0, null) && ( (paso = false) || this.fws.toast('warning', 'BigTrack', this.translate.instant('frm.gpsmodels.mdl_ndport_rq')) )
+				!this.fws.validInt(this.frmdata.mdl_naport, 0, null) && ( (paso = false) || this.fws.toast('warning', 'BigTrack', this.translate.instant('frm.gpsmodels.mdl_naport_rq')) )
+				!this.fws.validString(this.frmdata.mdl_vmanual1, 2, 255) && ( (paso = false) || this.fws.toast('warning', 'BigTrack', this.translate.instant('frm.gpsmodels.mdl_vmanual1_rq')) )
+				!this.fws.validString(this.frmdata.mdl_vmanual2, 2, 255) && ( (paso = false) || this.fws.toast('warning', 'BigTrack', this.translate.instant('frm.gpsmodels.mdl_vmanual2_rq')) )
+				!this.fws.validString(this.frmdata.mdl_vmanual3, 2, 255) && ( (paso = false) || this.fws.toast('warning', 'BigTrack', this.translate.instant('frm.gpsmodels.mdl_vmanual3_rq')) )
+				!this.fws.validInt(this.frmdata.mdl_nsts, 0, null) && ( (paso = false) || this.fws.toast('warning', 'BigTrack', this.translate.instant('frm.gpsmodels.mdl_nsts_rq')) )
+
+				if	(paso){
+					this.crud.setGpsmodels(this.frmdata).subscribe(x => {
+						x.datos.rows && x.datos.rows[0] && x.datos.rows[0].mdl_nid && (this.frmdata.mdl_nid = x.datos.rows[0].mdl_nid);
+					});
+				}
+			};
+			resetForm(e) {
+				e && e.preventDefault();
+			};
+
+			reFreshGpsmodels(e){
+				e && e.preventDefault();
+				this.ram.getDatos("gpsmodels", 1, 1).take(1).subscribe(x => {
+					console.log("Actualizacion Completada");
+				});
+			};
+			ngOnInit() {
+				this.ram.getDatos("gpsmodels").takeUntil(this.destroy$).subscribe(data => {
+					this.gpsmodels_rows = data;
+				});
+			};
+			ngOnDestroy() {
+				this.destroy$.next(true);
+				this.destroy$.unsubscribe();
+			};
+
+			// *********************************************************************
+			// ###### AGREGAR AL CRUD SERVICE  ######
+			// *********************************************************************
+
+			// TODOS LOS EVENTOS HTTP PARA *** _TGPSMODELS ***
+			// _________________________________________________________________________
+				setGpsmodels(body: Object) {
+					body = body || {};
+					return this.http.post('/pmain/sgpsmodels', body).map(this.setterFnOk);
+				};
+				getGpsmodels(body: any) {
+					body = body || Object.assign(body, {
+						scope: "CIA"
+					});
+					return this.http.post('/pmain/ggpsmodels', body).map(this.setterFnOk);
+				}
+				delGpsmodels(body: Object) {
+					body = body || {};
+					return this.http.post('/pmain/dgpsmodels', body).map(this.setterFnOk);
+				};
+			// |\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/
+
+
+
+			// *********************************************************************
+			// ###### AGREGAR AL ROUTER DE Express  ######
+			// *********************************************************************
+			// TODAS LAS RUTAS PARA *** _TGPSMODELS ***
+			// _________________________________________________________________________
+				r.post('/dgpsmodels', candado, (req, res, next) => {
+					processGpsmodels("dGpsmodels",req, res)
+				});
+				r.post('/sgpsmodels', candado, (req, res, next) => {
+					processGpsmodels("sGpsmodels",req, res)
+				});
+				let processGpsmodels = (keysql,req, res) => {
+					if	(_SQL.hasOwnProperty(keysql)){
+						_SQL[keysql](req.body, req.session)
+						.then((datos) => {
+							try {
+								RAM.gpsmodels({ match: req.session }, 1).then((res) => {
+									req.app.io.in('cia_' + req.session.cia_nid).emit('dbquery', Object.assign({ origen: 'gpsmodels' }, res));
+								});
+							} catch (ex) {
+								console.log(ex);
+								req.app.io.in('session_' + req.session.id).emit('backendError',{msg:"backend.EX001", err: ex});
+							}
+							res.send(datos);
+						}, (datos) => { run.fail(datos, res, req) })
+					}else{
+						res.send({type: 'paramsError', msg: "backend.EX002", error: {key: keysql } });
+					}
+				};
+				r.post('/ggpsmodels', candado, (req, res, next) => {
+					_SQL.gGpsmodels(req.body)
+					.then((data) => {
+						run.resolvestd(data, res, req)
+					})
+					.fail((data) => {
+						run.fail(data,res,req);
+					})
+				});
+			// |\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/
+
+
+			// *********************************************************************
+			// ###### AGREGAR A LA LIBRERIA SQL  ######
+			// *********************************************************************
+			// Metodos SQL PARA *** _TGPSMODELS ***
+			// _________________________________________________________________________
+				sql.sGpsmodels = (body, session) => {
+					body = body || {};
+					let deferred = q.defer();
+
+					//⬇⬇⬇⬇⬇⬇⬇Si la Tabla requiere cia_nid la siguiente linea comprueba su existencia ⬇⬇⬇⬇⬇⬇
+
+					//⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆
+					let params = {
+						data:body,
+						table:'_tgpsmodels',
+						key:'mdl_nid',
+						where: null,
+						return: '*' //<-usar * para devolcer todo el row afectado o insertado
+					};
+					run.upsert(params, 'sGpsmodels')
+					.then(x => {
+						deferred.resolve(x)
+					}).fail((res) => {
+						deferred.reject(res);
+					});
+					return deferred.promise;
+				};
+				sql.gGpsmodels=(options)=>{
+					let deferred = q.defer();
+					try{
+						if (!(options && options.scope)){
+							deferred.reject({type: 'dataError', msg: "backend.EX004", error : options });
+						}
+						let strsql = "";
+						switch(options.scope){
+							case 'CIA':
+								strsql = format('SELECT mdl_nid, mdl_vname, brn_nid, mdl_ndport, mdl_naport, mdl_vmanual1, mdl_vmanual2, mdl_vmanual3, mdl_nsts FROM _tgpsmodels  WHERE cia_nid = %s ORDER BY mdl_nid  DESC', options.match);
+								break;
+							case 'ALL':
+								strsql = 'SELECT mdl_nid, mdl_vname, brn_nid, mdl_ndport, mdl_naport, mdl_vmanual1, mdl_vmanual2, mdl_vmanual3, mdl_nsts FROM _tgpsmodels  ORDER BY mdl_nid DESC';
+								break;
+							default:
+								process.nextTick(()=>{
+									deferred.reject({type: 'dataError', msg: "backend.EX005", error : options });
+								});
+								return deferred.promise;
+						};
+						run.stdqry(strsql, 'gGpsmodels').then(data=>{
+							try{
+								deferred.resolve(data);
+							}catch(ex){
+								console.log(ex);
+							}
+						}).fail(err => {
+							deferred.reject(err)
+						});
+					}catch(ex){
+						console.log(ex)
+					}
+					return deferred.promise;
+
+				};
+				sql.dGpsmodels = (body, session) => {
+					body = body || {};
+
+					let cia_nid = session.cia_nid;
+					if (session.user && session.user.usr_nsuper*1 == 1) {
+						if (body.cia_nid) {
+							cia_nid = body.cia_nid
+						}
+					}
+
+					let deferred = q.defer();
+					let params = {
+						table: '_tgpsmodels',
+						key: 'mdl_nid',
+						value: body.mdl_nid,
+						reqCia: false,
+						cia: cia_nid
+					};
+					run.delete(params, 'dGpsmodels')
+						.then(
+						x => {
+							deferred.resolve(x)
+						}
+						)
+						.fail(
+						(res) => {
+							deferred.reject(res);
+						}
+						);
+					return deferred.promise;
+				};
+			// |\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/
+
+			// Metodos RAM_DB *** _TGPSMODELS ***
+			// _________________________________________________________________________
+				ramdata.gpsmodels = (qryp, strict) => {
+					let deferred = q.defer();
+					!repo.hasOwnProperty('gpsmodels') && (repo['gpsmodels'] = []);
+					if ((repo.gpsmodels.length == 0) || (strict && strict == 1)) {
+						try {
+							_SQL.gGpsmodels({
+								scope: 'CIA',
+								match: 0
+							})
+								.then((res) => {
+									resolvestd(res, qryp, "gpsmodels", deferred)
+								})
+								.fail((res) => {
+									console.log("No hay respuesta");
+									deferred.reject(res);
+								})
+						} catch (ex) {
+							console.log(ex);
+						}
+					} else {
+						process.nextTick(() => {
+							deferred.resolve({ type: "ok", datos: repo.gpsmodels, qrtype: 'RAM' });
+						});
+					}
+					return deferred.promise;
+				};
+			// |\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/
+
+
+			// Para el Component de busqueda Usar comando
+			// ng g c shared/components/gpsmodelstext
+
+			gpsmodelsChange(e){
+				if (e) {
+					this.frmdata.mdl_nid = e.mdl_nid;
+				}else{
+					this.frmdata.mdl_nid = null;
+				}
+			}
+			//Esto va en la funcion Edit ⬇⬇⬇
+			this.setters.mdl_nid = { mdl_nid: rw["mdl_nid"]};
+			// Setter dede incluir
+			//public setters={ mdl_nid : null, }
+			//
+
+	body
+		h1(class="page-title") {{'frm.gpsmodels.tit' | translate}}
+		.row
+			.col-sm-4
+				section.widget(widget)
+					header
+						h5 Form
+						.widget-controls
+							a(title='Reset', (click)="resetForm($event);")
+								i.big-refresh
+							a(data-widgster='expand', title='Expand', href='#')
+								i.glyphicon.glyphicon-chevron-up
+							a(data-widgster='collapse', title='Collapse', href='#')
+								i.glyphicon.glyphicon-chevron-down
+					.widget-body
+						form(role="form")
+							//- ****************************************** -//
+							//- *********** mdl_nid ************ -//
+							//- PrimaryKey Hiden
+							input.form-control(type="hidden", readonly, [(ngModel)]= "frmdata.mdl_nid", name="mdl_nid")
+							//- PrimaryKey Visible
+							.form-group
+								label {{'frm.gpsmodels.mdl_nid' | translate}} :
+								input.form-control(type="number", placeholder="{{'frm.gpsmodels.mdl_nid_ph' | translate}}", readonly, [(ngModel)]= "frmdata.mdl_nid", name="mdl_nid")
+							//- ******************************************
+
+
+
+							//- ****************************************** -//
+							//- *********** mdl_vname ************ -//
+							.form-group
+								label {{'frm.gpsmodels.mdl_vname' | translate}} :
+								input.form-control(type="text", placeholder="{{'frm.gpsmodels.mdl_vname_ph' | translate}}", [(ngModel)]="frmdata.mdl_vname", name="mdl_vname", #mdl_vname="ngModel", required, minlength="2", maxlength="50")
+							//- ******************************************
+
+
+
+							//- ****************************************** -//
+							//- *********** brn_nid ************ -//
+							.form-group
+								label {{'frm.gpsmodels.brn_nid' | translate}} :
+								input.form-control(type="number",min="-2147483648", max="2147483647", placeholder="{{'frm.gpsmodels.brn_nid_ph' | translate}}", [(ngModel)]= "frmdata.brn_nid", name="brn_nid")
+							//- ******************************************
+
+
+
+							//- ****************************************** -//
+							//- *********** mdl_ndport ************ -//
+							.form-group
+								label {{'frm.gpsmodels.mdl_ndport' | translate}} :
+								input.form-control(type="number",min="-99", max="99", step="any", placeholder="{{'frm.gpsmodels.mdl_ndport_ph' | translate}}", [(ngModel)]= "frmdata.mdl_ndport", name="mdl_ndport")
+								input.form-control(type="number",min="0.00", max="99", step="any", placeholder="{{'frm.gpsmodels.mdl_ndport_ph' | translate}}", [(ngModel)]= "frmdata.mdl_ndport", name="mdl_ndport")
+							//- ******************************************
+
+
+
+							//- ****************************************** -//
+							//- *********** mdl_naport ************ -//
+							.form-group
+								label {{'frm.gpsmodels.mdl_naport' | translate}} :
+								input.form-control(type="number",min="-99", max="99", step="any", placeholder="{{'frm.gpsmodels.mdl_naport_ph' | translate}}", [(ngModel)]= "frmdata.mdl_naport", name="mdl_naport")
+								input.form-control(type="number",min="0.00", max="99", step="any", placeholder="{{'frm.gpsmodels.mdl_naport_ph' | translate}}", [(ngModel)]= "frmdata.mdl_naport", name="mdl_naport")
+							//- ******************************************
+
+
+
+							//- ****************************************** -//
+							//- *********** mdl_vmanual1 ************ -//
+							.form-group
+								label {{'frm.gpsmodels.mdl_vmanual1' | translate}} :
+								input.form-control(type="text", placeholder="{{'frm.gpsmodels.mdl_vmanual1_ph' | translate}}", [(ngModel)]="frmdata.mdl_vmanual1", name="mdl_vmanual1", #mdl_vmanual1="ngModel", required, minlength="2", maxlength="255")
+							//- ******************************************
+
+
+
+							//- ****************************************** -//
+							//- *********** mdl_vmanual2 ************ -//
+							.form-group
+								label {{'frm.gpsmodels.mdl_vmanual2' | translate}} :
+								input.form-control(type="text", placeholder="{{'frm.gpsmodels.mdl_vmanual2_ph' | translate}}", [(ngModel)]="frmdata.mdl_vmanual2", name="mdl_vmanual2", #mdl_vmanual2="ngModel", required, minlength="2", maxlength="255")
+							//- ******************************************
+
+
+
+							//- ****************************************** -//
+							//- *********** mdl_vmanual3 ************ -//
+							.form-group
+								label {{'frm.gpsmodels.mdl_vmanual3' | translate}} :
+								input.form-control(type="text", placeholder="{{'frm.gpsmodels.mdl_vmanual3_ph' | translate}}", [(ngModel)]="frmdata.mdl_vmanual3", name="mdl_vmanual3", #mdl_vmanual3="ngModel", required, minlength="2", maxlength="255")
+							//- ******************************************
+
+
+
+							//- ****************************************** -//
+							//- *********** mdl_nsts ************ -//
+							.form-group
+								label {{'frm.gpsmodels.mdl_nsts' | translate}} :
+								input.form-control(type="number",min="-9", max="9", step="any", placeholder="{{'frm.gpsmodels.mdl_nsts_ph' | translate}}", [(ngModel)]= "frmdata.mdl_nsts", name="mdl_nsts")
+								input.form-control(type="number",min="0.00", max="9", step="any", placeholder="{{'frm.gpsmodels.mdl_nsts_ph' | translate}}", [(ngModel)]= "frmdata.mdl_nsts", name="mdl_nsts")
+								//- CheckBoxsOptions
+								br
+								label.radio-inline.c-radio
+									input#inlineradio1(type="radio", name="mdl_nsts", value="0", [(ngModel)]="frmdata.mdl_nsts", checked="checked")
+									span.fa.fa-circle
+									| {{'frm.gpsmodels.mdl_nsts0' | translate}}
+								label.radio-inline.c-radio
+									input#inlineradio1(type="radio", name="mdl_nsts", value="1", [(ngModel)]="frmdata.mdl_nsts" )
+									span.fa.fa-circle
+									| {{'frm.gpsmodels.mdl_nsts1' | translate}}
+							//- Checkboxs segundaOpcion
+							.form-group
+								label {{'frm.gpsmodels.mdl_nsts' | translate}}
+								.form-check.abc-checkbox.abc-checkbox-danger.abc-checkbox-circle
+									input(class="form-check-input", id="mdl_nsts0",name="mdl_nsts",[(ngModel)]="frmdata.mdl_nsts", value="0", type="radio", checked)
+									label(class="form-check-label" for="mdl_nsts0") {{'frm.gpsmodels.mdl_nsts0' | translate}}
+								.form-check.abc-checkbox.abc-checkbox-danger.abc-checkbox-circle
+									input(class="form-check-input", id="mdl_nsts1",name="mdl_nsts",[(ngModel)]="frmdata.mdl_nsts", value="1", type="radio")
+									label(class="form-check-label" for="mdl_nsts1") {{'frm.gpsmodels.mdl_nsts1' | translate}}
+							//- ******************************************
+
+
+
+							button.btn.btn-success.mb-xs(role="button", (click) = "saveBtn($event)")
+								i.big-check
+								| {{'btns.safe' | translate}}
+
+		section.widget(widget)
+			header
+				h5 Data
+				.widget-controls
+					a(title='Reset', (click)="reFreshGpsmodels($event);")
+						i.big-refresh
+					a(data-widgster="expand", title="Expand", href="#")
+						i.glyphicon.glyphicon-chevron-up
+					a(data-widgster="collapse",title="Collapse",href="#")
+						i.glyphicon.glyphicon-chevron-down
+			.widget-body
+				ngx-table([configuration]="tableconf", [data]="gpsmodels_rows", [columns]="gpsmodels_columns")
+					ng-template(let-row="")
+						td
+							.btn-group.btn-group(role="group" aria-label="...")
+								button.btn.btn-success(type="button",(click)="editBtn($event,row)", tooltip= "{{'btns.edit' | translate}}")
+									i.big-pencil
+								button.btn.btn-info(type="button",(click)="viewBtn($event,row)", tooltip= "{{'btns.view' | translate}}")
+									i.big-eye
+								button.btn.btn-danger(type="button",(click)="delBtn($event,row)", tooltip= "{{'btns.delte' | translate}}")
+									i.big-times
+						td {{row.mdl_nid}}
+						td {{row.mdl_vname}}
+						td {{row.brn_nid}}
+						td {{row.mdl_ndport}}
+						td {{row.mdl_naport}}
+						td {{row.mdl_vmanual1}}
+						td {{row.mdl_vmanual2}}
+						td {{row.mdl_vmanual3}}
+						td {{row.mdl_nsts}}
+
+
+			.form-group
+				label {{'frm.gpsmodels.gpsmodelstxtlabel' | translate}} :
+				app-gpsmodelstext(
+					placeholder = "{{'frm.gpsmodels.gpsmodelstxtph' | translate}}",
+					[isSearchable] = "true",
+					[value] = "setters.mdl_nid",
+					[filtro] ='null',
+					(onChange) = "gpsmodelsChange($event)" )

@@ -1,0 +1,753 @@
+
+	doctype html
+	html
+	head
+		script(type='text/javascript')
+			import { Component, OnInit, ViewEncapsulation, ViewChild, OnDestroy, NgZone } from '@angular/core';
+			import { TranslateService } from '@ngx-translate/core';
+
+			import { FrmworkService } from "@shared/services/frmwork.service";
+			import { CommunicatorService } from "@shared/services/communicator.service";
+			import { RamdataService } from "@shared/services/ramdata.service";
+			import { SettingsService } from "@core/settings/settings.service";
+			import { DatatableComponent } from "@swimlane/ngx-datatable"
+
+			import { Subject } from 'rxjs/Subject';
+			import { BehaviorSubject } from 'rxjs/BehaviorSubject';
+			const swal = require('sweetalert');
+			declare let jQuery: any;
+			@Component({
+				selector: 'app-user',
+				templateUrl: './user.component.html',
+				styleUrls: ['./user.component.scss']
+			})
+			export class UserComponent implements OnInit, OnDestroy {
+				private destroy$: Subject<boolean> = new Subject<boolean>();
+				public rows = [];
+				public filterRslt = [];
+				public filterstr = "";
+				public filterTimer = null;
+				loadingIndicator: boolean = true;
+
+							public frmdata = {
+				usr_nid : 0 ,
+				usr_vnick :  ''  ,
+				usr_vpswd :  ''  ,
+				usr_vname :  ''  ,
+				usr_bppolitics : '0' ,
+				usr_dexpire : undefined ,
+				usr_bfirsttime : '0' ,
+				prf_nid : 0 ,
+				usr_bsts : '0' ,
+				cia_nid : 0 ,
+				usr_vlanguage : ('es')
+			};
+			public setters = {
+
+			};
+
+				// public isSuper = false; // =>> Si la tabla requiere identificacion por Compañias
+
+				@ViewChild("table") table : DatatableComponent;
+				constructor(
+					public fwk: FrmworkService, private translate: TranslateService,
+					public ram: RamdataService, public communicator: CommunicatorService,
+					public settings: SettingsService,
+					public zn: NgZone){
+
+					// Si la tabla requiere identificacion por Compañias
+					this.settings.credencialesS.takeUntil(this.destroy$).subscribe(x=>{
+						try{
+							this.frmdata.cia_nid = x['user']['cia_nid'];
+						}catch(ex){
+							this.frmdata.cia_nid = 0;
+						}
+					});
+
+					this.ram.getDatos("user").takeUntil(this.destroy$).subscribe(data => {
+						zn.run(()=>{
+							this.rows = data;
+							this.updateFilter(null);
+						});
+					});
+					this.resetForm(null);
+				}
+
+				editBtn(e,rw){
+					e && e.preventDefault();
+
+					this.resetForm(null);
+					for (let key in rw) {
+						if (this.frmdata.hasOwnProperty(key)) {
+							this.frmdata[key] = rw[key];
+						}
+					};
+					this.frmdata.**_bsts == rw.**_bsts ? '1' : '0';
+					// Sugerencia de edicion pata los tags
+
+				};
+				viewBtn(e, rw) {
+					e && e.preventDefault();
+				};
+				delBtn(e, rw) {
+					e && e.preventDefault();
+					// if (rw.ESTADO  !=  0) {
+					// 	swal(
+					// 		'Ops',
+					// 		this.translate.instant('ALGUN ERROR POR RESTRICCION DE BORRADO'),
+					// 		'warning'
+					// 	)
+					// 	return;
+					// }
+					swal({
+						title: this.translate.instant('rotulos.swal.deltit'),
+						text: this.translate.instant('rotulos.swal.delquest'),
+						type: 'warning',
+						showCancelButton: true,
+						confirmButtonText: this.translate.instant('rotulos.swal.yesdel'),
+						cancelButtonText: 'No.'
+					}).then((result) => {
+						if (result.value) {
+							this.communicator.delUser(rw).subscribe(x => {
+								// console.log(x);
+								if (x.hasOwnProperty('type') && x['type'] == 'ok') {
+									swal(
+										'Deleted',
+										'Ok!',
+										'success'
+									)
+								}else{
+									swal(
+										'Ops',
+										this.translate.instant(x['msg']) || "Somthing wrong...",
+										'warning'
+									)
+								}
+							});
+						}
+					});
+				};
+				saveBtn(e) {
+					e && e.preventDefault();
+					// ***** los tags a String en caso que existan
+
+					// *******************************************************
+					// VALIDAR LA INFORMACION ANTES DE HACER EL POST
+					// *******************************************************
+					let paso = true;
+					!this.fwk.validInt(this.frmdata.usr_nid, 0, null) && ( (paso = false) || this.fwk.toast('warning', 'BigTrack', this.translate.instant('frm.user.usr_nid_rq')) )
+				!this.fwk.validString(this.frmdata.usr_vnick, 2, 20) && ( (paso = false) || this.fwk.toast('warning', 'BigTrack', this.translate.instant('frm.user.usr_vnick_rq')) )
+				!this.fwk.validString(this.frmdata.usr_vpswd, 2, 120) && ( (paso = false) || this.fwk.toast('warning', 'BigTrack', this.translate.instant('frm.user.usr_vpswd_rq')) )
+				!this.fwk.validString(this.frmdata.usr_vname, 2, 60) && ( (paso = false) || this.fwk.toast('warning', 'BigTrack', this.translate.instant('frm.user.usr_vname_rq')) )
+				!this.fwk.validInt(this.frmdata.prf_nid, 0, 2147483647) && ( (paso = false) || this.fwk.toast('warning', 'BigTrack', this.translate.instant('frm.user.prf_nid_rq')) )
+				!this.fwk.validInt(this.frmdata.cia_nid, 0, 2147483647) && ( (paso = false) || this.fwk.toast('warning', 'BigTrack', this.translate.instant('frm.user.cia_nid_rq')) )
+				!this.fwk.validString(this.frmdata.usr_vlanguage, 2, 3) && ( (paso = false) || this.fwk.toast('warning', 'BigTrack', this.translate.instant('frm.user.usr_vlanguage_rq')) )
+
+					if	(paso){
+						this.communicator.setUser(this.frmdata).subscribe(x => {
+							x.datos.recordset && x.datos.recordset[0] && x.datos.recordset[0].lastid && (this.frmdata.usr_nid = x.datos.recordset[0].lastid);
+						});
+					}
+				};
+				resetForm(e) {
+					e && e.preventDefault();
+					// resetear con la formdata
+				};
+				updateFilter(e) {
+					this.loadingIndicator = true;
+					e && e.hasOwnProperty('preventDefault') && e.preventDefault();
+					this.filterTimer && clearTimeout(this.filterTimer)
+					this.filterTimer = setTimeout(() => {
+						if (this.filterstr.trim().length>0)
+							this.filterRslt = this.rows.filter((val, idx, arr)=>{
+								return Object.keys(val).reduce((acum,current,idx)=>{
+									val[current] && (acum = acum + '_' + val[current].toString());
+									return acum;
+								}, "").toUpperCase().indexOf(this.filterstr.toUpperCase()) > -1
+							})
+						else {this.filterRslt = this.rows}
+						setTimeout(() => {
+							this.loadingIndicator = false;
+						}, 200);
+					}, 700);
+				}
+
+				reload(e){
+					e && e.preventDefault();
+					this.loadingIndicator = true;
+					if (e  && e.altKey) {
+						this.communicator.getUser(null).subscribe(x => {
+							x && x.hasOwnProperty('type') && x.type == 'ok' &&  (this.rows = x.datos);
+							this.updateFilter(null);
+						});
+					}else
+						this.ram.getDatos("user",1,1);
+				}
+				ngOnInit() {
+				};
+				ngOnDestroy() {
+					this.destroy$.next(true);
+					this.destroy$.unsubscribe();
+				};
+
+				body
+				div(class="content-heading") {{'frm.user.tit' | translate}}
+				.row
+					.col-sm-5
+						.card.card-default
+							.card-header
+								span {{"frm.user.frmtit" | translate}}
+								a.text-muted.float-right(tooltip="{{'rot.reload' | translate}}",  (click)= "reload($event)")
+									em.icon-reload
+								.text-muted.float-right
+									| &nbsp; &nbsp;
+								a.text-muted.float-right(tooltip="{{'rot.new' | translate}}", (click)= "resetForm($event)")
+									em.icon-doc
+							.card-body
+								form.form-validate.mb-3(role="form")
+									//- ****************************************** -//
+								//- *********** usr_nid ************ -//
+								//- PrimaryKey Hiden
+								input.form-control(type="hidden", readonly, [(ngModel)]= "frmdata.usr_nid", name="usr_nid")
+								//- PrimaryKey Visible
+								.form-group
+									label {{'frm.user.usr_nid' | translate}} :
+									input.form-control(type="number", placeholder="{{'frm.user.usr_nid_ph' | translate}}", readonly, [(ngModel)]= "frmdata.usr_nid", name="usr_nid")
+									.text-danger(*ngIf="(usr_nid.errors?.required ) && (usr_nid.dirty || usr_nid.touched)") {{'frm.user.usr_nid_rq' | translate}}
+								//- ******************************************
+
+
+
+								//- ****************************************** -//
+								//- *********** usr_vnick ************ -//
+								.form-group
+									label {{'frm.user.usr_vnick' | translate}} :
+									.input-group.with-focus
+										input.form-control(type="text", placeholder="{{'frm.user.usr_vnick_ph' | translate}}", [(ngModel)]="frmdata.usr_vnick", name="usr_vnick", #usr_vnick="ngModel", required, minlength="2", maxlength="20")
+									.text-danger(*ngIf="(usr_vnick.errors?.required || usr_vnick.errors ?.minlength) && (usr_vnick.dirty || usr_vnick.touched)") {{'frm.user.usr_vnick_rq' | translate}}
+								//- ******************************************
+
+
+
+								//- ****************************************** -//
+								//- *********** usr_vpswd ************ -//
+								.form-group
+									label {{'frm.user.usr_vpswd' | translate}} :
+									.input-group.with-focus
+										input.form-control(type="text", placeholder="{{'frm.user.usr_vpswd_ph' | translate}}", [(ngModel)]="frmdata.usr_vpswd", name="usr_vpswd", #usr_vpswd="ngModel", required, minlength="2", maxlength="120")
+									.text-danger(*ngIf="(usr_vpswd.errors?.required || usr_vpswd.errors ?.minlength) && (usr_vpswd.dirty || usr_vpswd.touched)") {{'frm.user.usr_vpswd_rq' | translate}}
+								//- ******************************************
+
+
+
+								//- ****************************************** -//
+								//- *********** usr_vname ************ -//
+								.form-group
+									label {{'frm.user.usr_vname' | translate}} :
+									.input-group.with-focus
+										input.form-control(type="text", placeholder="{{'frm.user.usr_vname_ph' | translate}}", [(ngModel)]="frmdata.usr_vname", name="usr_vname", #usr_vname="ngModel", required, minlength="2", maxlength="60")
+									.text-danger(*ngIf="(usr_vname.errors?.required || usr_vname.errors ?.minlength) && (usr_vname.dirty || usr_vname.touched)") {{'frm.user.usr_vname_rq' | translate}}
+								//- ******************************************
+
+
+
+								//- ****************************************** -//
+								//- *********** usr_bppolitics ************ -//
+								.form-group
+									label {{'frm.user.usr_bppolitics' | translate}} :
+									//- CheckBoxsOptions
+									br
+									label.c-radio
+										input#inlineradio1(type="radio", name="usr_bppolitics", value="0", [(ngModel)]="frmdata.usr_bppolitics", checked="checked")
+										span.fa.fa-check
+										| {{'frm.user.usr_bppolitics0' | translate}}
+									label.c-radio
+										input#inlineradio1(type="radio", name="usr_bppolitics", value="1", [(ngModel)]="frmdata.usr_bppolitics" )
+										span.fa.fa-check
+										| {{'frm.user.usr_bppolitics1' | translate}}
+								//- ******************************************
+
+
+
+								//- ****************************************** -//
+								//- *********** usr_dexpire ************ -//
+								.form-group
+									label {{'frm.user.usr_dexpire' | translate}} :
+								//- ******************************************
+
+
+
+								//- ****************************************** -//
+								//- *********** usr_bfirsttime ************ -//
+								.form-group
+									label {{'frm.user.usr_bfirsttime' | translate}} :
+									//- CheckBoxsOptions
+									br
+									label.c-radio
+										input#inlineradio1(type="radio", name="usr_bfirsttime", value="0", [(ngModel)]="frmdata.usr_bfirsttime", checked="checked")
+										span.fa.fa-check
+										| {{'frm.user.usr_bfirsttime0' | translate}}
+									label.c-radio
+										input#inlineradio1(type="radio", name="usr_bfirsttime", value="1", [(ngModel)]="frmdata.usr_bfirsttime" )
+										span.fa.fa-check
+										| {{'frm.user.usr_bfirsttime1' | translate}}
+								//- ******************************************
+
+
+
+								//- ****************************************** -//
+								//- *********** prf_nid ************ -//
+								.form-group
+									label {{'frm.user.prf_nid' | translate}} :
+									.input-group.with-focus
+										input.form-control(type="number",required ,min="-2147483648", max="2147483647", placeholder="{{'frm.user.prf_nid_ph' | translate}}", [(ngModel)]= "frmdata.prf_nid", name="prf_nid")
+									.text-danger(*ngIf="prf_nid.errors?.required && (prf_nid.dirty || prf_nid.touched)") {{'frm.user.prf_nid_rq' | translate}}
+								//- ******************************************
+
+
+
+								//- ****************************************** -//
+								//- *********** usr_bsts ************ -//
+								.form-group
+									label {{'frm.user.usr_bsts' | translate}} :
+									//- CheckBoxsOptions
+									br
+									label.c-radio
+										input#inlineradio1(type="radio", name="usr_bsts", value="0", [(ngModel)]="frmdata.usr_bsts", checked="checked")
+										span.fa.fa-check
+										| {{'frm.user.usr_bsts0' | translate}}
+									label.c-radio
+										input#inlineradio1(type="radio", name="usr_bsts", value="1", [(ngModel)]="frmdata.usr_bsts" )
+										span.fa.fa-check
+										| {{'frm.user.usr_bsts1' | translate}}
+								//- ******************************************
+
+
+
+								//- ****************************************** -//
+								//- *********** cia_nid ************ -//
+								.form-group
+									label {{'frm.user.cia_nid' | translate}} :
+									.input-group.with-focus
+										input.form-control(type="number",required ,min="-2147483648", max="2147483647", placeholder="{{'frm.user.cia_nid_ph' | translate}}", [(ngModel)]= "frmdata.cia_nid", name="cia_nid")
+									.text-danger(*ngIf="cia_nid.errors?.required && (cia_nid.dirty || cia_nid.touched)") {{'frm.user.cia_nid_rq' | translate}}
+								//- ******************************************
+
+
+
+								//- ****************************************** -//
+								//- *********** usr_vlanguage ************ -//
+								.form-group
+									label {{'frm.user.usr_vlanguage' | translate}} :
+									.input-group.with-focus
+										input.form-control(type="text", placeholder="{{'frm.user.usr_vlanguage_ph' | translate}}", [(ngModel)]="frmdata.usr_vlanguage", name="usr_vlanguage", #usr_vlanguage="ngModel", required, minlength="2", maxlength="3")
+									.text-danger(*ngIf="(usr_vlanguage.errors?.required || usr_vlanguage.errors ?.minlength) && (usr_vlanguage.dirty || usr_vlanguage.touched)") {{'frm.user.usr_vlanguage_rq' | translate}}
+								//- ******************************************
+
+
+
+									button.btn.btn-success.mb-xs(role="button", (click) = "saveBtn($event)")
+										i.big-check
+										| {{'btns.safe' | translate}}
+
+					.col-md-7
+						input.form-control.form-control-rounded(type='text',
+							placeholder='{{"rot.filter" | translate}}',
+							style='padding:8px;margin:0px auto 10px auto;width:90%;',
+							(keyup)='updateFilter($event)',
+							[(ngModel)]="filterstr")
+
+						ngx-datatable.material.fullscreen(
+							#table='',
+							[rows]='filterRslt',
+							[columnMode]="'force'",
+							[headerHeight]="50",
+							[footerHeight]="50",
+							[sortType]="'multi'",
+							[rowHeight]="40",
+							[scrollbarV]="false",
+							[scrollbarH]="true",
+							[reorderable]="true",
+							[swapColumns]="false",
+							[limit]="10",
+							[loadingIndicator]="loadingIndicator")
+							ngx-datatable-column(
+								name="Edit",
+								[width]='55',
+								[sortable]="false",
+								[canAutoResize]="false",
+								[draggable]="false",
+								[resizeable]="false")
+								ng-template(let-row="row", ngx-datatable-cell-template="")
+								button.btn.btn-sm.btn-outline-info((click)="editBtn($event,row)", tooltip= "{{'btns.edit' | translate}}")
+								i.icon.fa.fa-edit
+								ngx-datatable-column(name="{{'frm.user.usr_nid' | translate}}", prop="usr_nid", [width]='auto')
+							ngx-datatable-column(name="{{'frm.user.usr_vnick' | translate}}", prop="usr_vnick", [width]='auto')
+							ngx-datatable-column(name="{{'frm.user.usr_vpswd' | translate}}", prop="usr_vpswd", [width]='auto')
+							ngx-datatable-column(name="{{'frm.user.usr_vname' | translate}}", prop="usr_vname", [width]='auto')
+							ngx-datatable-column(name="{{'frm.user.usr_bppolitics' | translate}}", prop="usr_bppolitics", [width]='auto')
+							ngx-datatable-column(name="{{'frm.user.usr_dexpire' | translate}}", prop="usr_dexpire", [width]='auto')
+							ngx-datatable-column(name="{{'frm.user.usr_bfirsttime' | translate}}", prop="usr_bfirsttime", [width]='auto')
+							ngx-datatable-column(name="{{'frm.user.prf_nid' | translate}}", prop="prf_nid", [width]='auto')
+							ngx-datatable-column(name="{{'frm.user.usr_bsts' | translate}}", prop="usr_bsts", [width]='auto')
+							ngx-datatable-column(name="{{'frm.user.cia_nid' | translate}}", prop="cia_nid", [width]='auto')
+							ngx-datatable-column(name="{{'frm.user.usr_vlanguage' | translate}}", prop="usr_vlanguage", [width]='auto')
+
+
+						.form-group
+							label {{'frm.user.usertxtlabel' | translate}} :
+							app-usertext(
+								placeholder = "{{'frm.user.usertxtph' | translate}}",
+								[isSearchable] = "true",
+								[value] = "setters.usr_nid",
+								[filtro] ='null',
+								(onChange) = "userChange($event)" )
+	// *********************************************************************
+	// ###### AGREGAR AL communicator SERVICE  ######
+	// *********************************************************************
+
+	// TODOS LOS EVENTOS HTTP PARA *** USER ***
+	// _________________________________________________________________________
+		setUser(body: Object) {
+			body = body || {};
+			return this.http.post('/backpani/suser', body).map(this.setterFnOk);
+		};
+		getUser(body: any) {
+			body = (body && body.hasOwnProperty('scope')) ? body : Object.assign(body || {}, { scope: "CIA" });
+			return this.http.post('/backpani/guser', body).map(this.setterFnOk);
+		}
+		delUser(body: Object) {
+			body = body || {};
+			return this.http.post('/backpani/duser', body).map(this.setterFnOk);
+		};
+	// |\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/
+
+
+
+	// *********************************************************************
+	// ###### AGREGAR AL ROUTER DE Express  ######
+	// *********************************************************************
+	// TODAS LAS RUTAS PARA *** USER ***
+	// _________________________________________________________________________
+		r.post('/duser', candado, (req, res, next) => {
+			processUser("dUser",req, res)
+		});
+		r.post('/suser', candado, (req, res, next) => {
+			processUser("sUser",req, res)
+		});
+		let processUser = (keysql,req, res) => {
+			if	(_SQL.hasOwnProperty(keysql)){
+				_SQL[keysql](req.body, req.session)
+				.then((datos) => {
+					try {
+						RAM.user({ match: req.session.user }, 1).then((res) => {
+							req.app.io.in('cia_' + req.session.user.cia_nid).emit('dbquery', Object.assign({ origen: 'user' }, res));
+						});
+					} catch (ex) {
+						console.log(ex);
+						req.app.io.in('session_' + req.session.id).emit('backendError',{msg:"backend.EX003", err: ex});
+					}
+					res.send(datos);
+				}, (datos) => { run.fail(datos, res, req) })
+			}else{
+				res.send({type: 'paramsError', msg: "backend.EX001", error: {key: keysql } });
+			}
+		};
+		r.post('/guser', candado, (req, res, next) => {
+			_SQL.gUser(req.body, req.session)
+			.then((data) => {
+				run.resolvestd(data, res, req)
+			})
+			.catch((data) => {
+				run.fail(data,res,req);
+			})
+		});
+	// |\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/
+
+
+	// *********************************************************************
+	// ###### AGREGAR A LA LIBRERIA SQL  ######
+	// *********************************************************************
+	// Metodos SQL PARA *** USER ***
+	// _________________________________________________________________________
+		sql.sUser = (body, session) => {
+			body = body || {};
+			let deferred = q.defer();
+
+			//⬇⬇⬇⬇⬇⬇⬇Si la Tabla requiere cia_nid la siguiente linea comprueba su existencia ⬇⬇⬇⬇⬇⬇
+			body['cia_nid'] = session.user.cia_nid;
+			//⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆
+			let params = {
+				data:body,
+				table:'user',
+				key:'usr_nid',
+				where: null,
+				return: '*' //<-usar * para devolcer todo el row afectado o insertado
+			};
+			run.upsert('BS',params, 'sUser')
+			.then(x => {
+				deferred.resolve(x)
+			}).catch((res) => {
+				deferred.reject(res);
+			});
+			return deferred.promise;
+		};
+		sql.gUser=(options)=>{
+			return new Promise((resolve, reject)=>{
+				try{
+					if (!(options && options.scope)){
+						reject({type: 'dataError', msg: "backend.EX004", error : options });
+					}
+					let strsql = "";
+					!options.hasOwnProperty('match') && (options['match'] = session.user.cia_nid);
+					switch(options.scope){
+						case 'CIA':
+							strsql = SqlString.format('SELECT usr_nid, usr_vnick, usr_vpswd, usr_vname, usr_bppolitics, usr_dexpire, usr_bfirsttime, prf_nid, usr_bsts, cia_nid, usr_vlanguage FROM user  WHERE _bsts = 1 AND cia_nid = ? ORDER BY usr_nid  DESC', [options.match]);
+							break;
+						case 'CIAALL':
+							strsql = SqlString.format('SELECT usr_nid, usr_vnick, usr_vpswd, usr_vname, usr_bppolitics, usr_dexpire, usr_bfirsttime, prf_nid, usr_bsts, cia_nid, usr_vlanguage FROM user  WHERE cia_nid = ? ORDER BY usr_nid  DESC', [options.match]);
+							break;
+						case 'ALL':
+							strsql = 'SELECT usr_nid, usr_vnick, usr_vpswd, usr_vname, usr_bppolitics, usr_dexpire, usr_bfirsttime, prf_nid, usr_bsts, cia_nid, usr_vlanguage FROM user  ORDER BY usr_nid DESC';
+							break;
+						default:
+							process.nextTick(()=>{
+								reject({type: 'dataError', msg: "backend.EX001", error : options });
+							});
+							return;
+					}; //==>> Guarda el resultado final del HTML
+
+					run.query('BS',strsql, 'gUser').then(data=>{
+						try{
+							resolve(data);
+						}catch(ex){
+							console.log(ex);
+						}
+					}).catch(err => {
+						reject(err);
+					});
+				}catch(ex){
+					console.log(ex)
+				}
+			});
+		};
+		sql.dUser = (body, session) => {
+			body = body || {};
+
+			let cia_nid = session.cia_nid;
+			if (session.user && session.user.usr_nsuper*1 == 1) {
+				if (body.cia_nid) {
+					cia_nid = body.cia_nid
+				}
+			}
+
+			let deferred = q.defer();
+			let params = {
+				table: 'user',
+				key: 'usr_nid',
+				value: body.usr_nid,
+				reqCia: true,
+				cia: cia_nid
+			};
+			run.delete(params, 'dUser')
+				.then(
+				x => {
+					deferred.resolve(x)
+				}
+				)
+				.catch(
+				(res) => {
+					deferred.reject(res);
+				}
+				);
+			return deferred.promise;
+		};
+	// |\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/
+
+	// Metodos RAM_DB *** USER ***
+	// _________________________________________________________________________
+		ramdata.user = (qryp, strict) => {
+			let deferred = q.defer();
+			!repo.hasOwnProperty('user') && (repo['user'] = {});
+
+			!repo.user.hasOwnProperty(cia_nid) && (repo.user[cia_nid] = [] );
+			if ((repo.user[cia_nid].length == 0) || (strict && strict == 1)) {
+				try {
+					_SQL.gUser({
+						scope: 'CIA',
+						match: cia_nid
+					})
+						.then((res) => {
+							resolvestd(res, qryp, "user", deferred)
+						})
+						.catch((res) => {
+							console.log("No hay respuesta");
+							deferred.reject(res);
+						})
+				} catch (ex) {
+					console.log(ex);
+				}
+			} else {
+				process.nextTick(() => {
+					deferred.resolve({ type: "ok", datos: repo.user[cia_nid], qrtype: 'RAM' });
+				});
+			}
+			return deferred.promise;
+		};
+	// |\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/
+
+
+	// Para el Component de busqueda Usar comando
+	// ng g c shared/components/usertext
+	// ng g c routes/*&***&**/user
+	userChange(e){
+		if (e) {
+			this.frmdata.usr_nid = e.usr_nid;
+		}else{
+			this.frmdata.usr_nid = null;
+		}
+	}
+	//Esto va en la funcion Edit ⬇⬇⬇
+	this.setters.usr_nid = { usr_nid: rw["usr_nid"]};
+	// Setter dede incluir
+	//public setters={ usr_nid : null, }
+	//
+// &&&&&&&&&&&&&&&&&&&&&&&&********************************&&&&&&&&&&&&&&&&&&
+// &&&&&&&&&&&&&&&&&&&&&&&&********************************&&&&&&&&&&&&&&&&&&
+// &&&&&&&&&&&&&&&&&&&&&&&&********************************&&&&&&&&&&&&&&&&&&
+
+			import { Component, EventEmitter, Input, Output, OnInit, OnDestroy } from '@angular/core';
+			import { RamdataService } from '@shared/services/ramdata.service';
+			import { FrmworkService } from '@shared/services/frmwork.service';
+			import { SettingsService } from '@core/settings/settings.service';
+			import { Subject } from 'rxjs/Subject';
+
+			@Component({
+				selector: 'app-usertext',
+				template: `
+					<ng-select
+					[items]="items"
+				placeholder = "{{placeholder}}"
+				[searchable] = "isSearchable"
+				[searchFn] = "_buscar"
+					(clear) = "_clear()"
+						(change) = "_onChange($event)"
+				loadingText = "Bigtrack ... "
+				[(ngModel)] = "_value"
+					>
+					<ng-template ng-option-tmp let-item="item">
+						{{ item.label }}:{{ item.id }}<br />
+						<small>{{ item.text }}</small>
+					</ng-template>
+					</ng-select >
+				`
+			})
+			export class UsertextComponent implements OnInit {
+				private destroy$: Subject<boolean> = new Subject<boolean>();
+				public items: Array<Object> = [];
+				public _filtro: Object = null;
+				public _value: Object = {};
+				public rawData = [];
+
+				@Input() placeholder: String = "Seleccione &&&&&";
+				@Input() isSearchable:boolean = true;
+
+				public lastValue:object = null
+				@Input("value")
+				set value(e: Object) {
+					this.applyFilter(e);
+					this.lastValue = e;
+				};
+				applyFilter(e){
+					if (e && e["usr_nid"]) {
+						let rw: any = this.rawData.find( (el:any) => el.hasOwnProperty('usr_nid') && el['usr_nid'] == e['usr_nid'] );
+						if (rw !== undefined) {
+							this._value = {
+								id: rw.usr_nid,
+								label: rw.labelField&&&,
+								text: rw.textField&&&,
+							};
+							return;
+						}
+					}
+					this._value = {};
+				}
+
+				@Input("filtro")
+				set filtro(e: Object) {
+					let ittm = this.items;
+					if (!!e) {
+						this._filtro = e;
+						ittm = this.dataTransform(this.rawData);
+					}else{
+						!!this._filtro && (this._filtro = null) || (ittm  = this.dataTransform(this.rawData))
+						this._filtro = null;
+					}
+					this.items = [...ittm];
+				}
+				@Output()
+				onChange = new EventEmitter();
+				constructor(public fwk: FrmworkService, public ram: RamdataService, private setting :SettingsService) {}
+				_onChange(e){
+					try {
+						if (!e) { this.onChange.emit(null); return; }
+						let rw: any = this.rawData.find((el: any) => el.hasOwnProperty('usr_nid') && el['usr_nid'] == e['id']);
+						this.onChange.emit(rw);
+					} catch (error) {
+						console.error(error);
+					}
+				}
+				_clear(){
+					this.onChange.emit(null);
+				}
+				_buscar(term: string, item: any) {
+					try{
+						!!term && (term = term.toLocaleLowerCase());
+						return item.label.toLocaleLowerCase().indexOf(term) > -1 || item.text.toLocaleLowerCase().indexOf(term) >-1 || item.id.toString() == term;
+					}catch(ex){
+						return false;
+					}
+				}
+				dataTransform(data:Array<{}>):Array<{}>{
+					try {
+						let filtered = data;
+						if (this._filtro) {
+							filtered = data.filter(el=>{
+								for (const key in this._filtro) {
+									if(el.hasOwnProperty(key)){
+										if (el[key] !== this._filtro[key]) return false;
+									}else{
+										return false;
+									}
+								}
+								return true;
+							});
+						}
+						return filtered.map(el=> {
+							return {
+								id: el['usr_nid'],
+								label: el['labelField&&&'],
+								text: el["textField&&&"]}
+						});
+					} catch (error) {
+						console.error(error);
+						return [];
+					}
+				}
+				ngOnInit() {
+
+					this.ram.getDatos("user").takeUntil(this.destroy$).subscribe(data => {
+						this.rawData = data;
+						this.items = [...this.dataTransform(data)];
+						this.applyFilter(this.lastValue);
+					});
+				}
+				ngOnDestroy() {
+					this.destroy$.next(true);
+					this.destroy$.unsubscribe();
+				};
+			}
+
+// &&&&&&&&&&&&&&&&&&&&&&&&********************************&&&&&&&&&&&&&&&&&&
+// &&&&&&&&&&&&&&&&&&&&&&&&********************************&&&&&&&&&&&&&&&&&&
+// &&&&&&&&&&&&&&&&&&&&&&&&********************************&&&&&&&&&&&&&&&&&&

@@ -14,7 +14,13 @@ let confi = {
     },
     mysql:{
 
-    }
+	},
+	mssql : {
+		user: 'BSSoft',
+		password: '??',
+		server: '??',
+		database: 'BSPopular'
+	}
 }
 let args = process.argv.slice(2);
 let host, password,tabla
@@ -88,23 +94,30 @@ if (paso) {
         .fail(console.error)
 
     } else if (SQLType == 'mysql') {
-        
-    }else{
+	}else if (SQLType == 'mssql') {
+		confi.mssql.password = password;
+		confi.mssql.server = host;
+		database && (confi.mssql.database = database);
+		sql.init(confi.mssql, 'mssql');
+
+		sql.getTableStruct(tabla)
+		.then(res => generarHtml(res))
+		.fail(console.error)
+	}else{
         console.log("Tipo de Base de Datos no es valido...");
     }
 }
 generarHtml = (datos) =>{
     if (datos && datos.hasOwnProperty('type') && datos.type == 'ok') {
-        console.log("+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=    Resultados    +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=");
-        let html = boots.make(datos.datos,translate);
+		console.log(datos.datos);
+		let html = boots.make(datos.datos, translate, tabla);
         fs.writeFile("./outs/"+tabla + ".pug", html, (err)=>{
             if (err) {
                 return console.log(err);
             }
-            console.log("The file was saved!");
-        }); 
+        });
     }else{
-        console.log(datos);
+		console.log("Sin Datos");
     }
 }
 

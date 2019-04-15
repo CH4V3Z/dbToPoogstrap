@@ -1,0 +1,570 @@
+
+	doctype html
+	html
+	head
+		script(type='text/javascript')
+			import { Component, OnInit, ViewEncapsulation, ViewChild, OnDestroy } from '@angular/core';
+			import { TranslateService } from '@ngx-translate/core';
+
+			import { FrameworkService } from "@shared/services/framework.service";
+			import { CrudService } from "@shared/services/crud.service";
+			import { RammemoryService } from "@shared/services/rammemory.service";
+			import { SettingsService } from "@shared/services/settings.service";
+
+			import { Subject } from 'rxjs/Subject';
+			import { BehaviorSubject } from 'rxjs/BehaviorSubject';
+			import Swal from 'sweetalert2'
+			declare let jQuery: any;
+
+
+			// export class [Tu nombre de componenr] implements OnInit, OnDestroy {
+			private destroy$: Subject<boolean> = new Subject<boolean>();
+
+
+			modulo : {
+				mdu_vcod : "mdu_vcod",
+				mdu_vname : "mdu_vname",
+				mdu_vcod_ph : "mdu_vcod_txt" ,
+				mdu_vname_ph : "mdu_vname_txt" ,
+				modulotxtlabel : "modulotxtlabel" ,
+				modulotxtph : "modulotxtph" ,
+				tit : "Titulo Modulo" ,
+				mdu_vcod_th : "mdu_vcod_txt" ,
+				mdu_vname_th : "mdu_vname_txt" ,
+				mdu_vcod_rq : "mdu_vcod_txt es invalido" ,
+				mdu_vname_rq : "mdu_vname_txt es invalido"
+			},
+			public frmdata = {
+				mdu_vcod : 0 ,
+				mdu_vname :  ''
+			};
+			public modulo_rows = [];
+			public modulo_columns = [
+				{key: 'Opc', title: this.translate.instant('rotulos.opc'), orderEnabled: false, searchEnabled: false },
+
+			];
+			public isSuper = false; // =>> Si la tabla requiere identificacion por Compañias
+			public tableconf;
+			constructor(
+				public fws: FrameworkService, private translate: TranslateService,
+				public ram: RammemoryService, public crud: CrudService,
+				public settings: SettingsService){
+				this.tableconf = FrameworkService.table_config;
+				this.tableconf.detailsTemplate = false;
+
+				// Si la tabla requiere identificacion por Compañias
+
+			}
+
+			editBtn(e,rw){
+				e && e.preventDefault();
+
+				this.resetForm(null);
+				for (let key in rw) {
+					if (this.frmdata.hasOwnProperty(key)) {
+						this.frmdata[key] = rw[key];
+					}
+				};
+
+				// Sugerencia de edicion pata los tags
+
+			};
+			viewBtn(e, rw) {
+				e && e.preventDefault();
+			};
+			delBtn(e, rw) {
+				e && e.preventDefault();
+				// if (rw.ESTADO  !=  0) {
+				// 	Swal(
+				// 		'Ops',
+				// 		this.translate.instant('ALGUN ERROR POR RESTRICCION DE BORRADO'),
+				// 		'warning'
+				// 	)
+				// 	return;
+				// }
+				Swal({
+					title: this.translate.instant('rotulos.swal.deltit'),
+					text: this.translate.instant('rotulos.swal.delquest'),
+					type: 'warning',
+					showCancelButton: true,
+					confirmButtonText: this.translate.instant('rotulos.swal.yesdel'),
+					cancelButtonText: 'No.'
+				}).then((result) => {
+					if (result.value) {
+						this.crud.delModulo(rw).subscribe(x => {
+							// console.log(x);
+							if (x.hasOwnProperty('type') && x['type'] == 'ok') {
+								Swal(
+									'Deleted',
+									'Ok!',
+									'success'
+								)
+							}else{
+								Swal(
+									'Ops',
+									this.translate.instant(x['msg']) || "Somthing wrong...",
+									'warning'
+								)
+							}
+						});
+					}
+				});
+			};
+			saveBtn(e) {
+				e && e.preventDefault();
+
+				// ***** los tags a String en caso que existan
+
+
+				// *******************************************************
+				// VALIDAR LA INFORMACION ANTES DE HACER EL POST
+				// *******************************************************
+				let paso = true;
+				!this.fws.validInt(this.frmdata.mdu_vcod, 0, null) && ( (paso = false) || this.fws.toast('warning', 'BigTrack', this.translate.instant('frm.modulo.mdu_vcod_rq')) )
+				!this.fws.validString(this.frmdata.mdu_vname, 2, 50) && ( (paso = false) || this.fws.toast('warning', 'BigTrack', this.translate.instant('frm.modulo.mdu_vname_rq')) )
+
+				if	(paso){
+					this.crud.setModulo(this.frmdata).subscribe(x => {
+						x.datos.rows && x.datos.rows[0] && x.datos.rows[0].mdu_vcod && (this.frmdata.mdu_vcod = x.datos.rows[0].mdu_vcod);
+					});
+				}
+			};
+			resetForm(e) {
+				e && e.preventDefault();
+			};
+
+			reFreshModulo(e){
+				e && e.preventDefault();
+				this.ram.getDatos("modulo", 1, 1).take(1).subscribe(x => {
+					console.log("Actualizacion Completada");
+				});
+			};
+			ngOnInit() {
+				this.ram.getDatos("modulo").takeUntil(this.destroy$).subscribe(data => {
+					this.modulo_rows = data;
+				});
+			};
+			ngOnDestroy() {
+				this.destroy$.next(true);
+				this.destroy$.unsubscribe();
+			};
+
+			// *********************************************************************
+			// ###### AGREGAR AL Comunicator SERVICE  ######
+			// *********************************************************************
+
+			// TODOS LOS EVENTOS HTTP PARA *** MODULE ***
+			// _________________________________________________________________________
+				setModulo(body: Object) {
+					body = body || {};
+					return this.http.post('/pmain/smodulo', body).map(this.setterFnOk);
+				};
+				getModulo(body: any) {
+					body = body || Object.assign(body, {
+						scope: "CIA"
+					});
+					return this.http.post('/pmain/gmodulo', body).map(this.setterFnOk);
+				}
+				delModulo(body: Object) {
+					body = body || {};
+					return this.http.post('/pmain/dmodulo', body).map(this.setterFnOk);
+				};
+			// |\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/
+
+
+
+			// *********************************************************************
+			// ###### AGREGAR AL ROUTER DE Express  ######
+			// *********************************************************************
+			// TODAS LAS RUTAS PARA *** MODULE ***
+			// _________________________________________________________________________
+				r.post('/dmodulo', candado, (req, res, next) => {
+					processModulo("dModulo",req, res)
+				});
+				r.post('/smodulo', candado, (req, res, next) => {
+					processModulo("sModulo",req, res)
+				});
+				let processModulo = (keysql,req, res) => {
+					if	(_SQL.hasOwnProperty(keysql)){
+						_SQL[keysql](req.body, req.session)
+						.then((datos) => {
+							try {
+								RAM.modulo({ match: req.session }, 1).then((res) => {
+									req.app.io.in('cia_' + req.session.cia_nid).emit('dbquery', Object.assign({ origen: 'modulo' }, res));
+								});
+							} catch (ex) {
+								console.log(ex);
+								req.app.io.in('session_' + req.session.id).emit('backendError',{msg:"backend.EX001", err: ex});
+							}
+							res.send(datos);
+						}, (datos) => { run.fail(datos, res, req) })
+					}else{
+						res.send({type: 'paramsError', msg: "backend.EX002", error: {key: keysql } });
+					}
+				};
+				r.post('/gmodulo', candado, (req, res, next) => {
+					_SQL.gModulo(req.body)
+					.then((data) => {
+						run.resolvestd(data, res, req)
+					})
+					.fail((data) => {
+						run.fail(data,res,req);
+					})
+				});
+			// |\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/
+
+
+			// *********************************************************************
+			// ###### AGREGAR A LA LIBRERIA SQL  ######
+			// *********************************************************************
+			// Metodos SQL PARA *** MODULE ***
+			// _________________________________________________________________________
+				sql.sModulo = (body, session) => {
+					body = body || {};
+					let deferred = q.defer();
+
+					//⬇⬇⬇⬇⬇⬇⬇Si la Tabla requiere cia_nid la siguiente linea comprueba su existencia ⬇⬇⬇⬇⬇⬇
+
+					//⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆
+					let params = {
+						data:body,
+						table:'module',
+						key:'mdu_vcod',
+						where: null,
+						return: '*' //<-usar * para devolcer todo el row afectado o insertado
+					};
+					run.upsert(params, 'sModulo')
+					.then(x => {
+						deferred.resolve(x)
+					}).fail((res) => {
+						deferred.reject(res);
+					});
+					return deferred.promise;
+				};
+				sql.gModulo=(options)=>{
+					let deferred = q.defer();
+					try{
+						if (!(options && options.scope)){
+							deferred.reject({type: 'dataError', msg: "backend.EX004", error : options });
+						}
+						let strsql = "";
+						switch(options.scope){
+							case 'CIA':
+								strsql = format('SELECT mdu_vcod, mdu_vname FROM module  WHERE cia_nid = %s ORDER BY mdu_vcod  DESC', options.match);
+								break;
+							case 'ALL':
+								strsql = 'SELECT mdu_vcod, mdu_vname FROM module  ORDER BY mdu_vcod DESC';
+								break;
+							default:
+								process.nextTick(()=>{
+									deferred.reject({type: 'dataError', msg: "backend.EX005", error : options });
+								});
+								return deferred.promise;
+						}; //==>> Guarda el resultado final del HTML
+
+						run.stdqry(strsql, 'gModulo').then(data=>{
+							try{
+
+								deferred.resolve //==>> Guarda el resultado final del HTML(data);
+
+							}catch(ex){
+								console.log(ex);
+
+							}
+						}).fail(err => {
+							deferred.reject(err)
+						});
+					}catch(ex){
+						console.log(ex)
+					}
+					return deferred.promise;
+
+				};
+				sql.dModulo = (body, session) => {
+					body = body || {};
+
+					let cia_nid = session.cia_nid;
+					if (session.user && session.user.usr_nsuper*1 == 1) {
+						if (body.cia_nid) {
+							cia_nid = body.cia_nid
+						}
+					}
+
+					let deferred = q.defer();
+					let params = {
+						table: 'module',
+						key: 'mdu_vcod',
+						value: body.mdu_vcod,
+						reqCia: false,
+						cia: cia_nid
+					};
+					run.delete(params, 'dModulo')
+						.then(
+						x => {
+							deferred.resolve(x)
+						}
+						)
+						.fail(
+						(res) => {
+							deferred.reject(res);
+						}
+						);
+					return deferred.promise;
+				};
+			// |\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/
+
+			// Metodos RAM_DB *** MODULE ***
+			// _________________________________________________________________________
+				ramdata.modulo = (qryp, strict) => {
+					let deferred = q.defer();
+					!repo.hasOwnProperty('modulo') && (repo['modulo'] = []);
+					if ((repo.modulo.length == 0) || (strict && strict == 1)) {
+						try {
+							_SQL.gModulo({
+								scope: 'CIA',
+								match: 0
+							})
+								.then((res) => {
+									resolvestd(res, qryp, "modulo", deferred)
+								})
+								.fail((res) => {
+									console.log("No hay respuesta");
+									deferred.reject(res);
+								})
+						} catch (ex) {
+							console.log(ex);
+						}
+					} else {
+						process.nextTick(() => {
+							deferred.resolve({ type: "ok", datos: repo.modulo, qrtype: 'RAM' });
+						});
+					}
+					return deferred.promise;
+				};
+			// |\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/
+
+
+			// Para el Component de busqueda Usar comando
+			// ng g c shared/components/modulotext
+
+			moduloChange(e){
+				if (e) {
+					this.frmdata.mdu_vcod = e.mdu_vcod;
+				}else{
+					this.frmdata.mdu_vcod = null;
+				}
+			}
+			//Esto va en la funcion Edit ⬇⬇⬇
+			this.setters.mdu_vcod = { mdu_vcod: rw["mdu_vcod"]};
+			// Setter dede incluir
+			//public setters={ mdu_vcod : null, }
+			//
+
+
+			import { Component, EventEmitter, Input, Output, OnInit, OnDestroy } from '@angular/core';
+			import { RamdataService } from '@shared/services/rammemory.service';
+			import { Subject } from 'rxjs/Subject';
+			import { SettingsService } from '@shared/services/settings.service';
+			import { FrameworkService } from '@shared/services/framework.service';
+
+			@Component({
+				selector: 'app-modulotext',
+				template: `
+					<ng-select
+					[items]="items"
+				placeholder = "{{placeholder}}"
+				[searchable] = "isSearchable"
+				[searchFn] = "_buscar"
+					(clear) = "_clear()"
+						(change) = "_onChange($event)"
+				loadingText = "Bigtrack ... "
+				[(ngModel)] = "_value"
+					>
+					<ng-template ng-option-tmp let-item="item">
+						{{ item.label }}:{{ item.id }}<br />
+						<small>{{ item.text }}</small>
+					</ng-template>
+					</ng-select >
+				`
+			})
+			export class ModulotextComponent implements OnInit {
+				private destroy$: Subject<boolean> = new Subject<boolean>();
+				public items: Array<Object> = [];
+				public _filtro: Object = null;
+				public _value: Object = {};
+				public rawData = [];
+
+				@Input() placeholder: String = "Seleccione &&&&&";
+				@Input() isSearchable:boolean = true;
+
+				public lastValue:object = null
+				@Input("value")
+				set value(e: Object) {
+					this.applyFilter(e);
+					this.lastValue = e;
+				};
+				applyFilter(e){
+					if (e && e["mdu_vcod"]) {
+						let rw: any = this.rawData.find( (el:any) => el.hasOwnProperty('mdu_vcod') && el['mdu_vcod'] == e['mdu_vcod'] );
+						if (rw !== undefined) {
+							this._value = {
+								id: rw.mdu_vcod,
+								label: rw.labelField&&&,
+								text: rw.textField&&&&,
+							};
+							return;
+						}
+					}
+					this._value = {};
+				}
+
+				@Input("filtro")
+				set filtro(e: Object) {
+					let ittm = this.items;
+					if (!!e) {
+						this._filtro = e;
+						ittm = this.dataTransform(this.rawData);
+					}else{
+						!!this._filtro && (this._filtro = null) || (ittm  = this.dataTransform(this.rawData))
+						this._filtro = null;
+					}
+					this.items = [...ittm];
+				}
+				@Output()
+				onChange = new EventEmitter();
+				constructor(public fws: FrameworkService, public ram: RammemoryService, private setting :SettingsService) {}
+				_onChange(e){
+					try {
+						if (!e) { this.onChange.emit(null); return; }
+						let rw: any = this.rawData.find((el: any) => el.hasOwnProperty('mdu_vcod') && el['mdu_vcod'] == e['id']);
+						this.onChange.emit(rw);
+					} catch (error) {
+						console.error(error);
+					}
+				}
+				_clear(){
+					this.onChange.emit(null);
+				}
+				_buscar(term: string, item: any) {
+					try{
+						!!term && (term = term.toLocaleLowerCase());
+						return item.label.toLocaleLowerCase().indexOf(term) > -1 || item.text.toLocaleLowerCase().indexOf(term) >-1 || item.id.toString() == term;
+					}catch(ex){
+						return false;
+					}
+				}
+				dataTransform(data:Array<{}>):Array<{}>{
+					try {
+						let filtered = data;
+						if (this._filtro) {
+							filtered = data.filter(el=>{
+								for (const key in this._filtro) {
+									if(el.hasOwnProperty(key)){
+										if (el[key] !== this._filtro[key]) return false;
+									}else{
+										return false;
+									}
+								}
+								return true;
+							});
+						}
+						return filtered.map(el=> {
+							return {
+								id: el['mdu_vcod'],
+								label: el['labelField&&&'],
+								text: el["textField&&&&"]}
+						});
+					} catch (error) {
+						console.error(error);
+						return [];
+					}
+				}
+				ngOnInit() {
+					this.ram.getDatos("modulo").takeUntil(this.destroy$).subscribe(data => {
+						this.rawData = data;
+						this.items = [...this.dataTransform(data)];
+						this.applyFilter(this.lastValue);
+					});
+				}
+				ngOnDestroy() {
+					this.destroy$.next(true);
+					this.destroy$.unsubscribe();
+				};
+			}
+
+	body
+		h1(class="page-title") {{'frm.modulo.tit' | translate}}
+		.row
+			.col-sm-4
+				section.widget(widget)
+					header
+						h5 Form
+						.widget-controls
+							a(title='Reset', (click)="resetForm($event);")
+								i.big-refresh
+							a(data-widgster='expand', title='Expand', href='#')
+								i.glyphicon.glyphicon-chevron-up
+							a(data-widgster='collapse', title='Collapse', href='#')
+								i.glyphicon.glyphicon-chevron-down
+					.widget-body
+						form.form-validate.mb-3(role="form")
+							//- ****************************************** -//
+							//- *********** mdu_vcod ************ -//
+							//- PrimaryKey Hiden
+							input.form-control(type="hidden", readonly, [(ngModel)]= "frmdata.mdu_vcod", name="mdu_vcod")
+							//- PrimaryKey Visible
+							.form-group
+								label {{'frm.modulo.mdu_vcod' | translate}} :
+								input.form-control(type="number", placeholder="{{'frm.modulo.mdu_vcod_ph' | translate}}", readonly, [(ngModel)]= "frmdata.mdu_vcod", name="mdu_vcod")
+								.text-danger(*ngIf="(mdu_vcod.errors?.required ) && (mdu_vcod.dirty || mdu_vcod.touched)") {{'frm.modulo.mdu_vcod_rq' | translate}}
+							//- ******************************************
+
+
+
+							//- ****************************************** -//
+							//- *********** mdu_vname ************ -//
+							.form-group
+								label {{'frm.modulo.mdu_vname' | translate}} :
+								.input-group.with-focus
+									input.form-control(type="text", placeholder="{{'frm.modulo.mdu_vname_ph' | translate}}", [(ngModel)]="frmdata.mdu_vname", name="mdu_vname", #mdu_vname="ngModel", required, minlength="2", maxlength="50")
+								.text-danger(*ngIf="(mdu_vname.errors?.required || mdu_vname.errors ?.minlength) && (mdu_vname.dirty || mdu_vname.touched)") {{'frm.modulo.mdu_vname_rq' | translate}}
+							//- ******************************************
+
+
+
+							button.btn.btn-success.mb-xs(role="button", (click) = "saveBtn($event)")
+								i.big-check
+								| {{'btns.safe' | translate}}
+
+		section.widget(widget)
+			header
+				h5 Data
+				.widget-controls
+					a(title='Reset', (click)="reFreshModulo($event);")
+						i.big-refresh
+					a(data-widgster="expand", title="Expand", href="#")
+						i.glyphicon.glyphicon-chevron-up
+					a(data-widgster="collapse",title="Collapse",href="#")
+						i.glyphicon.glyphicon-chevron-down
+			.widget-body
+				ngx-table([configuration]="tableconf", [data]="modulo_rows", [columns]="modulo_columns")
+					ng-template(let-row="")
+						td
+							.btn-group.btn-group(role="group" aria-label="...")
+								button.btn.btn-success(type="button",(click)="editBtn($event,row)", tooltip= "{{'btns.edit' | translate}}")
+									i.big-pencil
+								button.btn.btn-info(type="button",(click)="viewBtn($event,row)", tooltip= "{{'btns.view' | translate}}")
+									i.big-eye
+								button.btn.btn-danger(type="button",(click)="delBtn($event,row)", tooltip= "{{'btns.delte' | translate}}")
+									i.big-times
+
+
+
+			.form-group
+				label {{'frm.modulo.modulotxtlabel' | translate}} :
+				app-modulotext(
+					placeholder = "{{'frm.modulo.modulotxtph' | translate}}",
+					[isSearchable] = "true",
+					[value] = "setters.mdu_vcod",
+					[filtro] ='null',
+					(onChange) = "moduloChange($event)" )

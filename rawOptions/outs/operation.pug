@@ -1,0 +1,718 @@
+
+	doctype html
+	html
+	head
+		script(type='text/javascript')
+			import { Component, OnInit, ViewEncapsulation, ViewChild, OnDestroy } from '@angular/core';
+			import { TranslateService } from '@ngx-translate/core';
+
+			import { FrmworkService } from "@shared/services/framework.service";
+			import { CommunicatorService } from "@shared/services/communicator.service";
+			import { RamdataService } from "@shared/services/rammemory.service";
+			import { SettingsService } from "@shared/services/settings.service";
+
+			import { Subject } from 'rxjs/Subject';
+			import { BehaviorSubject } from 'rxjs/BehaviorSubject';
+			import Swal from 'sweetalert2'
+			declare let jQuery: any;
+
+
+			// export class [Tu nombre de componenr] implements OnInit, OnDestroy {
+			private destroy$: Subject<boolean> = new Subject<boolean>();
+
+						operation :{
+	"op_nid": {
+		"columna": "op_nid",
+		"predeterminado": null,
+		"IS_NULLABLE": "NO",
+		"datatype": "int",
+		"maxlength": 0,
+		"nsize": 10,
+		"scala": 0,
+		"primario": 1
+	},
+	"mdu_vcod": {
+		"columna": "mdu_vcod",
+		"predeterminado": null,
+		"IS_NULLABLE": "NO",
+		"datatype": "varchar",
+		"maxlength": 3,
+		"nsize": 0,
+		"scala": 0,
+		"primario": 0
+	},
+	"op_vcod": {
+		"columna": "op_vcod",
+		"predeterminado": null,
+		"IS_NULLABLE": "NO",
+		"datatype": "varchar",
+		"maxlength": 10,
+		"nsize": 0,
+		"scala": 0,
+		"primario": 0
+	},
+	"op_vname": {
+		"columna": "op_vname",
+		"predeterminado": null,
+		"IS_NULLABLE": "NO",
+		"datatype": "varchar",
+		"maxlength": 100,
+		"nsize": 0,
+		"scala": 0,
+		"primario": 0
+	},
+	"op_vtype": {
+		"columna": "op_vtype",
+		"predeterminado": "('O')",
+		"IS_NULLABLE": "NO",
+		"datatype": "varchar",
+		"maxlength": 3,
+		"nsize": 0,
+		"scala": 0,
+		"primario": 0
+	},
+	"op_bsts": {
+		"columna": "op_bsts",
+		"predeterminado": null,
+		"IS_NULLABLE": "NO",
+		"datatype": "bit",
+		"maxlength": 0,
+		"nsize": 0,
+		"scala": 0,
+		"primario": 0
+	}
+}
+			operation : {
+				op_nid : "op_nid",
+				mdu_vcod : "mdu_vcod",
+				op_vcod : "op_vcod",
+				op_vname : "op_vname",
+				op_vtype : "op_vtype",
+				op_bsts0 : "NO",
+				op_bsts1 : "SI",
+				op_bsts : "op_bsts",
+				op_nid_ph : "op_nid_txt" ,
+				mdu_vcod_ph : "mdu_vcod_txt" ,
+				op_vcod_ph : "op_vcod_txt" ,
+				op_vname_ph : "op_vname_txt" ,
+				op_vtype_ph : "op_vtype_txt" ,
+				op_bsts_ph : "op_bsts_txt" ,
+				operationtxtlabel : "operationtxtlabel" ,
+				operationtxtph : "operationtxtph" ,
+				tit : "Titulo Operation" ,
+				op_nid_th : "op_nid_txt" ,
+				mdu_vcod_th : "mdu_vcod_txt" ,
+				op_vcod_th : "op_vcod_txt" ,
+				op_vname_th : "op_vname_txt" ,
+				op_vtype_th : "op_vtype_txt" ,
+				op_bsts_th : "op_bsts_txt" ,
+				op_nid_rq : "op_nid_txt es invalido" ,
+				mdu_vcod_rq : "mdu_vcod_txt es invalido" ,
+				op_vcod_rq : "op_vcod_txt es invalido" ,
+				op_vname_rq : "op_vname_txt es invalido" ,
+				op_vtype_rq : "op_vtype_txt es invalido" ,
+				op_bsts_rq : "op_bsts_txt es invalido" 
+			},
+			public frmdata = {
+				op_nid : 0 ,
+				mdu_vcod :  ''  ,
+				op_vcod :  ''  ,
+				op_vname :  ''  ,
+				op_vtype : ('O') ,
+				op_bsts : '0' 
+			};
+			public operation_rows = [];
+			public operation_columns = [
+				{key: 'Opc', title: this.translate.instant('rotulos.opc'), orderEnabled: false, searchEnabled: false },
+				
+			];
+			public isSuper = false; // =>> Si la tabla requiere identificacion por Compañias
+			public tableconf;
+			constructor(
+				public fwk: FrmworkService, private translate: TranslateService,
+				public ram: RamdataService, public communicator: CommunicatorService,
+				public settings: SettingsService){
+				this.tableconf = FrmworkService.table_config;
+				this.tableconf.detailsTemplate = false;
+
+				// Si la tabla requiere identificacion por Compañias
+				
+			}
+
+			editBtn(e,rw){
+				e && e.preventDefault();
+
+				this.resetForm(null);
+				for (let key in rw) {
+					if (this.frmdata.hasOwnProperty(key)) {
+						this.frmdata[key] = rw[key];
+					}
+				};
+
+				// Sugerencia de edicion pata los tags
+				
+			};
+			viewBtn(e, rw) {
+				e && e.preventDefault();
+			};
+			delBtn(e, rw) {
+				e && e.preventDefault();
+				// if (rw.ESTADO  !=  0) {
+				// 	Swal(
+				// 		'Ops',
+				// 		this.translate.instant('ALGUN ERROR POR RESTRICCION DE BORRADO'),
+				// 		'warning'
+				// 	)
+				// 	return;
+				// }
+				Swal({
+					title: this.translate.instant('rotulos.swal.deltit'),
+					text: this.translate.instant('rotulos.swal.delquest'),
+					type: 'warning',
+					showCancelButton: true,
+					confirmButtonText: this.translate.instant('rotulos.swal.yesdel'),
+					cancelButtonText: 'No.'
+				}).then((result) => {
+					if (result.value) {
+						this.communicator.delOperation(rw).subscribe(x => {
+							// console.log(x);
+							if (x.hasOwnProperty('type') && x['type'] == 'ok') {
+								Swal(
+									'Deleted',
+									'Ok!',
+									'success'
+								)
+							}else{
+								Swal(
+									'Ops',
+									this.translate.instant(x['msg']) || "Somthing wrong...",
+									'warning'
+								)
+							}
+						});
+					}
+				});
+			};
+			saveBtn(e) {
+				e && e.preventDefault();
+
+				// ***** los tags a String en caso que existan
+				
+
+				// *******************************************************
+				// VALIDAR LA INFORMACION ANTES DE HACER EL POST
+				// *******************************************************
+				let paso = true;
+				!this.fwk.validInt(this.frmdata.op_nid, 0, null) && ( (paso = false) || this.fwk.toast('warning', 'BigTrack', this.translate.instant('frm.operation.op_nid_rq')) )
+				!this.fwk.validString(this.frmdata.mdu_vcod, 2, 3) && ( (paso = false) || this.fwk.toast('warning', 'BigTrack', this.translate.instant('frm.operation.mdu_vcod_rq')) )
+				!this.fwk.validString(this.frmdata.op_vcod, 2, 10) && ( (paso = false) || this.fwk.toast('warning', 'BigTrack', this.translate.instant('frm.operation.op_vcod_rq')) )
+				!this.fwk.validString(this.frmdata.op_vname, 2, 100) && ( (paso = false) || this.fwk.toast('warning', 'BigTrack', this.translate.instant('frm.operation.op_vname_rq')) )
+				!this.fwk.validString(this.frmdata.op_vtype, 2, 3) && ( (paso = false) || this.fwk.toast('warning', 'BigTrack', this.translate.instant('frm.operation.op_vtype_rq')) )
+
+				if	(paso){
+					this.communicator.setOperation(this.frmdata).subscribe(x => {
+						x.datos.rows && x.datos.rows[0] && x.datos.rows[0].op_nid && (this.frmdata.op_nid = x.datos.rows[0].op_nid);
+					});
+				}
+			};
+			resetForm(e) {
+				e && e.preventDefault();
+			};
+
+			reFreshOperation(e){
+				e && e.preventDefault();
+				this.ram.getDatos("operation", 1, 1).take(1).subscribe(x => {
+					console.log("Actualizacion Completada");
+				});
+			};
+			ngOnInit() {
+				this.ram.getDatos("operation").takeUntil(this.destroy$).subscribe(data => {
+					this.operation_rows = data;
+				});
+			};
+			ngOnDestroy() {
+				this.destroy$.next(true);
+				this.destroy$.unsubscribe();
+			};
+
+			// *********************************************************************
+			// ###### AGREGAR AL communicator SERVICE  ######
+			// *********************************************************************
+
+			// TODOS LOS EVENTOS HTTP PARA *** OPERATION ***
+			// _________________________________________________________________________
+				setOperation(body: Object) {
+					body = body || {};
+					return this.http.post('/backpani/soperation', body).map(this.setterFnOk);
+				};
+				getOperation(body: any) {
+					body = body || Object.assign(body, {
+						scope: "CIA"
+					});
+					return this.http.post('/backpani/goperation', body).map(this.setterFnOk);
+				}
+				delOperation(body: Object) {
+					body = body || {};
+					return this.http.post('/backpani/doperation', body).map(this.setterFnOk);
+				};
+			// |\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/
+
+
+
+			// *********************************************************************
+			// ###### AGREGAR AL ROUTER DE Express  ######
+			// *********************************************************************
+			// TODAS LAS RUTAS PARA *** OPERATION ***
+			// _________________________________________________________________________
+				r.post('/doperation', candado, (req, res, next) => {
+					processOperation("dOperation",req, res)
+				});
+				r.post('/soperation', candado, (req, res, next) => {
+					processOperation("sOperation",req, res)
+				});
+				let processOperation = (keysql,req, res) => {
+					if	(_SQL.hasOwnProperty(keysql)){
+						_SQL[keysql](req.body, req.session)
+						.then((datos) => {
+							try {
+								RAM.operation({ match: req.session }, 1).then((res) => {
+									req.app.io.in('cia_' + req.session.cia_nid).emit('dbquery', Object.assign({ origen: 'operation' }, res));
+								});
+							} catch (ex) {
+								console.log(ex);
+								req.app.io.in('session_' + req.session.id).emit('backendError',{msg:"backend.EX001", err: ex});
+							}
+							res.send(datos);
+						}, (datos) => { run.fail(datos, res, req) })
+					}else{
+						res.send({type: 'paramsError', msg: "backend.EX002", error: {key: keysql } });
+					}
+				};
+				r.post('/goperation', candado, (req, res, next) => {
+					_SQL.gOperation(req.body)
+					.then((data) => {
+						run.resolvestd(data, res, req)
+					})
+					.fail((data) => {
+						run.fail(data,res,req);
+					})
+				});
+			// |\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/
+
+
+			// *********************************************************************
+			// ###### AGREGAR A LA LIBRERIA SQL  ######
+			// *********************************************************************
+			// Metodos SQL PARA *** OPERATION ***
+			// _________________________________________________________________________
+				sql.sOperation = (body, session) => {
+					body = body || {};
+					let deferred = q.defer();
+
+					//⬇⬇⬇⬇⬇⬇⬇Si la Tabla requiere cia_nid la siguiente linea comprueba su existencia ⬇⬇⬇⬇⬇⬇
+					
+					//⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆
+					let params = {
+						data:body,
+						table:'operation',
+						key:'op_nid',
+						where: null,
+						return: '*' //<-usar * para devolcer todo el row afectado o insertado
+					};
+					run.upsert(params, 'sOperation')
+					.then(x => {
+						deferred.resolve(x)
+					}).fail((res) => {
+						deferred.reject(res);
+					});
+					return deferred.promise;
+				};
+				sql.gOperation=(options)=>{
+					let deferred = q.defer();
+					try{
+						if (!(options && options.scope)){
+							deferred.reject({type: 'dataError', msg: "backend.EX004", error : options });
+						}
+						let strsql = "";
+						switch(options.scope){
+							case 'CIA':
+								strsql = format('SELECT op_nid, mdu_vcod, op_vcod, op_vname, op_vtype, op_bsts FROM operation  WHERE cia_nid = %s ORDER BY op_nid  DESC', options.match);
+								break;
+							case 'ALL':
+								strsql = 'SELECT op_nid, mdu_vcod, op_vcod, op_vname, op_vtype, op_bsts FROM operation  ORDER BY op_nid DESC';
+								break;
+							default:
+								process.nextTick(()=>{
+									deferred.reject({type: 'dataError', msg: "backend.EX004", error : options });
+								});
+								return deferred.promise;
+						}; //==>> Guarda el resultado final del HTML
+
+						run.query(null,strsql, 'gOperation').then(data=>{
+							try{
+
+								deferred.resolve(data);
+
+							}catch(ex){
+								console.log(ex);
+
+							}
+						}).fail(err => {
+							deferred.reject(err)
+						});
+					}catch(ex){
+						console.log(ex)
+					}
+					return deferred.promise;
+
+				};
+				sql.dOperation = (body, session) => {
+					body = body || {};
+
+					let cia_nid = session.cia_nid;
+					if (session.user && session.user.usr_nsuper*1 == 1) {
+						if (body.cia_nid) {
+							cia_nid = body.cia_nid
+						}
+					}
+
+					let deferred = q.defer();
+					let params = {
+						table: 'operation',
+						key: 'op_nid',
+						value: body.op_nid,
+						reqCia: false,
+						cia: cia_nid
+					};
+					run.delete(params, 'dOperation')
+						.then(
+						x => {
+							deferred.resolve(x)
+						}
+						)
+						.fail(
+						(res) => {
+							deferred.reject(res);
+						}
+						);
+					return deferred.promise;
+				};
+			// |\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/
+
+			// Metodos RAM_DB *** OPERATION ***
+			// _________________________________________________________________________
+				ramdata.operation = (qryp, strict) => {
+					let deferred = q.defer();
+					!repo.hasOwnProperty('operation') && (repo['operation'] = []);
+					if ((repo.operation.length == 0) || (strict && strict == 1)) {
+						try {
+							_SQL.gOperation({
+								scope: 'CIA',
+								match: 0
+							})
+								.then((res) => {
+									resolvestd(res, qryp, "operation", deferred)
+								})
+								.fail((res) => {
+									console.log("No hay respuesta");
+									deferred.reject(res);
+								})
+						} catch (ex) {
+							console.log(ex);
+						}
+					} else {
+						process.nextTick(() => {
+							deferred.resolve({ type: "ok", datos: repo.operation, qrtype: 'RAM' });
+						});
+					}
+					return deferred.promise;
+				};
+			// |\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/|\-/
+
+
+			// Para el Component de busqueda Usar comando
+			// ng g c shared/components/operationtext
+
+			operationChange(e){
+				if (e) {
+					this.frmdata.op_nid = e.op_nid;
+				}else{
+					this.frmdata.op_nid = null;
+				}
+			}
+			//Esto va en la funcion Edit ⬇⬇⬇
+			this.setters.op_nid = { op_nid: rw["op_nid"]};
+			// Setter dede incluir
+			//public setters={ op_nid : null, }
+			//
+
+
+			import { Component, EventEmitter, Input, Output, OnInit, OnDestroy } from '@angular/core';
+			import { RamdataService } from '@shared/services/ramdata.service';
+			import { FrmworkService } from '@shared/services/frmwork.service';
+			import { SettingsService } from '@core/settings/settings.service';
+			import { Subject } from 'rxjs/Subject';
+
+			@Component({
+				selector: 'app-operationtext',
+				template: `
+					<ng-select
+					[items]="items"
+				placeholder = "{{placeholder}}"
+				[searchable] = "isSearchable"
+				[searchFn] = "_buscar"
+					(clear) = "_clear()"
+						(change) = "_onChange($event)"
+				loadingText = "Bigtrack ... "
+				[(ngModel)] = "_value"
+					>
+					<ng-template ng-option-tmp let-item="item">
+						{{ item.label }}:{{ item.id }}<br />
+						<small>{{ item.text }}</small>
+					</ng-template>
+					</ng-select >
+				`
+			})
+			export class OperationtextComponent implements OnInit {
+				private destroy$: Subject<boolean> = new Subject<boolean>();
+				public items: Array<Object> = [];
+				public _filtro: Object = null;
+				public _value: Object = {};
+				public rawData = [];
+
+				@Input() placeholder: String = "Seleccione &&&&&";
+				@Input() isSearchable:boolean = true;
+
+				public lastValue:object = null
+				@Input("value")
+				set value(e: Object) {
+					this.applyFilter(e);
+					this.lastValue = e;
+				};
+				applyFilter(e){
+					if (e && e["op_nid"]) {
+						let rw: any = this.rawData.find( (el:any) => el.hasOwnProperty('op_nid') && el['op_nid'] == e['op_nid'] );
+						if (rw !== undefined) {
+							this._value = {
+								id: rw.op_nid,
+								label: rw.labelField&&&,
+								text: rw.textField&&&,
+							};
+							return;
+						}
+					}
+					this._value = {};
+				}
+
+				@Input("filtro")
+				set filtro(e: Object) {
+					let ittm = this.items;
+					if (!!e) {
+						this._filtro = e;
+						ittm = this.dataTransform(this.rawData);
+					}else{
+						!!this._filtro && (this._filtro = null) || (ittm  = this.dataTransform(this.rawData))
+						this._filtro = null;
+					}
+					this.items = [...ittm];
+				}
+				@Output()
+				onChange = new EventEmitter();
+				constructor(public fwk: FrmworkService, public ram: RamdataService, private setting :SettingsService) {}
+				_onChange(e){
+					try {
+						if (!e) { this.onChange.emit(null); return; }
+						let rw: any = this.rawData.find((el: any) => el.hasOwnProperty('op_nid') && el['op_nid'] == e['id']);
+						this.onChange.emit(rw);
+					} catch (error) {
+						console.error(error);
+					}
+				}
+				_clear(){
+					this.onChange.emit(null);
+				}
+				_buscar(term: string, item: any) {
+					try{
+						!!term && (term = term.toLocaleLowerCase());
+						return item.label.toLocaleLowerCase().indexOf(term) > -1 || item.text.toLocaleLowerCase().indexOf(term) >-1 || item.id.toString() == term;
+					}catch(ex){
+						return false;
+					}
+				}
+				dataTransform(data:Array<{}>):Array<{}>{
+					try {
+						let filtered = data;
+						if (this._filtro) {
+							filtered = data.filter(el=>{
+								for (const key in this._filtro) {
+									if(el.hasOwnProperty(key)){
+										if (el[key] !== this._filtro[key]) return false;
+									}else{
+										return false;
+									}
+								}
+								return true;
+							});
+						}
+						return filtered.map(el=> {
+							return {
+								id: el['op_nid'],
+								label: el['labelField&&&'],
+								text: el["textField&&&"]}
+						});
+					} catch (error) {
+						console.error(error);
+						return [];
+					}
+				}
+				ngOnInit() {
+
+					this.ram.getDatos("operation").takeUntil(this.destroy$).subscribe(data => {
+						this.rawData = data;
+						this.items = [...this.dataTransform(data)];
+						this.applyFilter(this.lastValue);
+					});
+				}
+				ngOnDestroy() {
+					this.destroy$.next(true);
+					this.destroy$.unsubscribe();
+				};
+			}
+
+
+	body
+		h1(class="page-title") {{'frm.operation.tit' | translate}}
+		.row
+			.col-sm-4
+				section.widget(widget)
+					header
+						h5 Form
+						.widget-controls
+							a(title='Reset', (click)="resetForm($event);")
+								i.big-refresh
+							a(data-widgster='expand', title='Expand', href='#')
+								i.glyphicon.glyphicon-chevron-up
+							a(data-widgster='collapse', title='Collapse', href='#')
+								i.glyphicon.glyphicon-chevron-down
+					.widget-body
+						form.form-validate.mb-3(role="form")
+							//- ****************************************** -//
+							//- *********** op_nid ************ -//
+							//- PrimaryKey Hiden
+							input.form-control(type="hidden", readonly, [(ngModel)]= "frmdata.op_nid", name="op_nid")
+							//- PrimaryKey Visible
+							.form-group
+								label {{'frm.operation.op_nid' | translate}} :
+								input.form-control(type="number", placeholder="{{'frm.operation.op_nid_ph' | translate}}", readonly, [(ngModel)]= "frmdata.op_nid", name="op_nid")
+								.text-danger(*ngIf="(op_nid.errors?.required ) && (op_nid.dirty || op_nid.touched)") {{'frm.operation.op_nid_rq' | translate}}
+							//- ******************************************
+							
+
+
+							//- ****************************************** -//
+							//- *********** mdu_vcod ************ -//
+							.form-group
+								label {{'frm.operation.mdu_vcod' | translate}} :
+								.input-group.with-focus
+									input.form-control(type="text", placeholder="{{'frm.operation.mdu_vcod_ph' | translate}}", [(ngModel)]="frmdata.mdu_vcod", name="mdu_vcod", #mdu_vcod="ngModel", required, minlength="2", maxlength="3")
+								.text-danger(*ngIf="(mdu_vcod.errors?.required || mdu_vcod.errors ?.minlength) && (mdu_vcod.dirty || mdu_vcod.touched)") {{'frm.operation.mdu_vcod_rq' | translate}}
+							//- ******************************************
+							
+
+
+							//- ****************************************** -//
+							//- *********** op_vcod ************ -//
+							.form-group
+								label {{'frm.operation.op_vcod' | translate}} :
+								.input-group.with-focus
+									input.form-control(type="text", placeholder="{{'frm.operation.op_vcod_ph' | translate}}", [(ngModel)]="frmdata.op_vcod", name="op_vcod", #op_vcod="ngModel", required, minlength="2", maxlength="10")
+								.text-danger(*ngIf="(op_vcod.errors?.required || op_vcod.errors ?.minlength) && (op_vcod.dirty || op_vcod.touched)") {{'frm.operation.op_vcod_rq' | translate}}
+							//- ******************************************
+							
+
+
+							//- ****************************************** -//
+							//- *********** op_vname ************ -//
+							.form-group
+								label {{'frm.operation.op_vname' | translate}} :
+								.input-group.with-focus
+									input.form-control(type="text", placeholder="{{'frm.operation.op_vname_ph' | translate}}", [(ngModel)]="frmdata.op_vname", name="op_vname", #op_vname="ngModel", required, minlength="2", maxlength="100")
+								.text-danger(*ngIf="(op_vname.errors?.required || op_vname.errors ?.minlength) && (op_vname.dirty || op_vname.touched)") {{'frm.operation.op_vname_rq' | translate}}
+							//- ******************************************
+							
+
+
+							//- ****************************************** -//
+							//- *********** op_vtype ************ -//
+							.form-group
+								label {{'frm.operation.op_vtype' | translate}} :
+								.input-group.with-focus
+									input.form-control(type="text", placeholder="{{'frm.operation.op_vtype_ph' | translate}}", [(ngModel)]="frmdata.op_vtype", name="op_vtype", #op_vtype="ngModel", required, minlength="2", maxlength="3")
+								.text-danger(*ngIf="(op_vtype.errors?.required || op_vtype.errors ?.minlength) && (op_vtype.dirty || op_vtype.touched)") {{'frm.operation.op_vtype_rq' | translate}}
+							//- ******************************************
+							
+
+
+							//- ****************************************** -//
+							//- *********** op_bsts ************ -//
+							.form-group
+								label {{'frm.operation.op_bsts' | translate}} :
+								//- CheckBoxsOptions
+								br
+								label.c-radio
+									input#inlineradio1(type="radio", name="op_bsts", value="0", [(ngModel)]="frmdata.op_bsts", checked="checked")
+									span.fa.fa-check
+									| {{'frm.operation.op_bsts0' | translate}}
+								label.c-radio
+									input#inlineradio1(type="radio", name="op_bsts", value="1", [(ngModel)]="frmdata.op_bsts" )
+									span.fa.fa-check
+									| {{'frm.operation.op_bsts1' | translate}}
+							//- Checkboxs segundaOpcion
+							.form-group
+								label {{'frm.operation.op_bsts' | translate}}
+								.form-check.abc-checkbox.abc-checkbox-danger.abc-checkbox-circle
+									input(class="form-check-input", id="op_bsts0",name="op_bsts",[(ngModel)]="frmdata.op_bsts", value="0", type="radio", checked)
+									label(class="form-check-label" for="op_bsts0") {{'frm.operation.op_bsts0' | translate}} 
+								.form-check.abc-checkbox.abc-checkbox-danger.abc-checkbox-circle
+									input(class="form-check-input", id="op_bsts1",name="op_bsts",[(ngModel)]="frmdata.op_bsts", value="1", type="radio")
+									label(class="form-check-label" for="op_bsts1") {{'frm.operation.op_bsts1' | translate}} 
+							//- ******************************************
+							
+
+
+							button.btn.btn-success.mb-xs(role="button", (click) = "saveBtn($event)")
+								i.big-check
+								| {{'btns.safe' | translate}}
+
+		section.widget(widget)
+			header
+				h5 Data
+				.widget-controls
+					a(title='Reset', (click)="reFreshOperation($event);")
+						i.big-refresh
+					a(data-widgster="expand", title="Expand", href="#")
+						i.glyphicon.glyphicon-chevron-up
+					a(data-widgster="collapse",title="Collapse",href="#")
+						i.glyphicon.glyphicon-chevron-down
+			.widget-body
+				ngx-table([configuration]="tableconf", [data]="operation_rows", [columns]="operation_columns")
+					ng-template(let-row="")
+						td
+							.btn-group.btn-group(role="group" aria-label="...")
+								button.btn.btn-success(type="button",(click)="editBtn($event,row)", tooltip= "{{'btns.edit' | translate}}")
+									i.big-pencil
+								button.btn.btn-info(type="button",(click)="viewBtn($event,row)", tooltip= "{{'btns.view' | translate}}")
+									i.big-eye
+								button.btn.btn-danger(type="button",(click)="delBtn($event,row)", tooltip= "{{'btns.delte' | translate}}")
+									i.big-times
+						
+
+
+			.form-group
+				label {{'frm.operation.operationtxtlabel' | translate}} :
+				app-operationtext(
+					placeholder = "{{'frm.operation.operationtxtph' | translate}}",
+					[isSearchable] = "true",
+					[value] = "setters.op_nid",
+					[filtro] ='null',
+					(onChange) = "operationChange($event)" )
